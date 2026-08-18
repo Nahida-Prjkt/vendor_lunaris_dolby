@@ -869,3 +869,12 @@ cc_prebuilt_binary {
     relative_install_path: "hw",
     device_specific: true,
 }
+
+vintf_compatibility_matrix {
+    name: "dolby_framework_compatibility_matrix",
+    stem: "compatibility_matrix.dolby.xml",
+    system_ext_specific: true,
+    srcs: [
+        "vintf/dolby_framework_compatibility_matrix.xml",
+    ],
+}

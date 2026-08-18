@@ -65,8 +65,8 @@ PRODUCT_PACKAGES += \
     vendor.dolby_v3_6.hardware.dms360@2.0-service
 
 # VINTF
-DEVICE_FRAMEWORK_COMPATIBILITY_MATRIX_FILE += \
-    $(DOLBY_PATH)/vintf/dolby_framework_compatibility_matrix.xml
+PRODUCT_PACKAGES += \
+    dolby_framework_compatibility_matrix
 
 DEVICE_MANIFEST_FILE += \
     $(DOLBY_PATH)/vintf/dolby_manifest.xml
