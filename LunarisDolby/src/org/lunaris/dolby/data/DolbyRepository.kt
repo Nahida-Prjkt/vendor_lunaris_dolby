@@ -61,7 +61,9 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
                 DolbyConstants.dlog(TAG, "Lost audio effect control, recreating")
                 dolbyEffect.release()
                 dolbyEffect = createDolbyEffect()
-                restoreSavedProfileIfNeeded()
+                if (!shouldBypassDolbyProcessing()) {
+                    restoreSavedProfileIfNeeded()
+                }
             }
         } catch (e: Exception) {
             DolbyConstants.dlog(TAG, "Error checking effect: ${e.message}")
@@ -71,6 +73,20 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
     private fun readSavedProfile(): Int? {
         return defaultPrefs.getString(DolbyConstants.PREF_PROFILE, null)
             ?.toIntOrNull()
+    }
+
+    private fun isCommunicationMode(mode: Int = audioManager.mode): Boolean {
+        return mode == AudioManager.MODE_IN_COMMUNICATION ||
+            mode == AudioManager.MODE_IN_CALL
+    }
+
+    private fun shouldBypassDolbyProcessing(): Boolean {
+        return communicationBypassForced || isCommunicationMode()
+    }
+
+    fun setCommunicationBypassActive(active: Boolean) {
+        communicationBypassForced = active
+        DolbyConstants.dlog(TAG, "Communication bypass active: $active")
     }
 
     private fun restoreSavedProfileIfNeeded() {
@@ -121,11 +137,14 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
     }
 
     fun applySavedState() {
-    checkEffect()
-        val enabled = defaultPrefs.getBoolean(DolbyConstants.PREF_ENABLE, true)
-        dolbyEffect.dsOn = enabled
-        if (enabled) {
+        checkEffect()
+        val savedEnabled = defaultPrefs.getBoolean(DolbyConstants.PREF_ENABLE, true)
+        val runtimeEnabled = savedEnabled && !shouldBypassDolbyProcessing()
+        dolbyEffect.dsOn = runtimeEnabled
+        if (runtimeEnabled) {
             restoreSavedProfileIfNeeded()
+        } else if (savedEnabled) {
+            DolbyConstants.dlog(TAG, "Deferring Dolby restore while communication bypass is active")
         }
     }
 
@@ -146,6 +165,10 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
     }
 
     fun getDolbyEnabled(): Boolean {
+        if (shouldBypassDolbyProcessing()) {
+            return defaultPrefs.getBoolean(DolbyConstants.PREF_ENABLE, true)
+        }
+
         return try {
             dolbyEffect.dsOn
         } catch (e: Exception) {
@@ -156,17 +179,26 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
 
     fun setDolbyEnabled(enabled: Boolean) {
         if (isReleased) return
-        
+
+        defaultPrefs.edit().putBoolean(DolbyConstants.PREF_ENABLE, enabled).apply()
+
         try {
             checkEffect()
-            dolbyEffect.dsOn = enabled
-            defaultPrefs.edit().putBoolean(DolbyConstants.PREF_ENABLE, enabled).apply()
+            val runtimeEnabled = enabled && !shouldBypassDolbyProcessing()
+            dolbyEffect.dsOn = runtimeEnabled
+            if (enabled && !runtimeEnabled) {
+                DolbyConstants.dlog(TAG, "Dolby enable deferred while communication bypass is active")
+            }
         } catch (e: Exception) {
             DolbyConstants.dlog(TAG, "Error setting Dolby enabled: ${e.message}")
         }
     }
 
     fun getCurrentProfile(): Int {
+        if (shouldBypassDolbyProcessing()) {
+            return readSavedProfile() ?: _currentProfile.value
+        }
+
         return try {
             checkEffect()
             dolbyEffect.profile
@@ -178,16 +210,22 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
 
     fun setCurrentProfile(profile: Int) {
         if (isReleased) return
-        
+
+        defaultPrefs.edit().putString(DolbyConstants.PREF_PROFILE, profile.toString()).apply()
+        _currentProfile.value = profile
+
+        if (shouldBypassDolbyProcessing()) {
+            DolbyConstants.dlog(TAG, "Profile $profile saved and deferred until communication bypass ends")
+            return
+        }
+
         try {
             checkEffect()
             dolbyEffect.profile = profile
-            defaultPrefs.edit().putString(DolbyConstants.PREF_PROFILE, profile.toString()).apply()
             if (!verifyProfileSaved(profile)) {
                 DolbyConstants.dlog(TAG, "WARNING: Profile may not have been saved correctly!")
             }
             restoreProfilePreset(profile)
-            _currentProfile.value = profile
             DolbyConstants.dlog(TAG, "Profile set to: $profile")
         } catch (e: Exception) {
             DolbyConstants.dlog(TAG, "Error setting current profile: ${e.message}")
@@ -927,6 +965,9 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
     companion object {
         private const val TAG = "DolbyRepository"
         private const val EFFECT_PRIORITY = 100
+
+        @Volatile
+        private var communicationBypassForced = false
         
         private const val BASS_GAIN_MULTIPLIER = 1.4f
         private const val MID_GAIN_MULTIPLIER = 1.3f
