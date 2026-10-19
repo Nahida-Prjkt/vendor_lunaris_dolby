@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
@@ -159,8 +160,7 @@ fun PresetImportExportScreen(
                 title = { 
                     Text(
                         stringResource(R.string.import_export_presets),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.headlineMediumEmphasized,
                         color = MaterialTheme.colorScheme.onSurface
                     ) 
                 },
@@ -226,8 +226,7 @@ fun PresetImportExportScreen(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text(
                                             stringResource(R.string.import_presets),
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.SemiBold,
+                                            style = MaterialTheme.typography.titleLargeEmphasized,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
@@ -316,8 +315,7 @@ fun PresetImportExportScreen(
                         item {
                             Text(
                                 stringResource(R.string.your_custom_presets),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleMediumEmphasized,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
@@ -528,8 +526,7 @@ private fun PresetExportCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         preset.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleMediumEmphasized,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
