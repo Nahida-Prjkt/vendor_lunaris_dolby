@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.screens
 
 import androidx.compose.animation.*
@@ -23,7 +25,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -50,8 +51,7 @@ fun AppProfileScreen(
                 title = { 
                     Text(
                         stringResource(R.string.app_profiles_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.headlineMediumEmphasized,
                         color = MaterialTheme.colorScheme.onSurface
                     ) 
                 },
@@ -315,8 +315,7 @@ private fun AppProfileItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = app.appName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyLargeEmphasized,
                     color = if (isAssigned) {
                         MaterialTheme.colorScheme.onSecondaryContainer
                     } else {

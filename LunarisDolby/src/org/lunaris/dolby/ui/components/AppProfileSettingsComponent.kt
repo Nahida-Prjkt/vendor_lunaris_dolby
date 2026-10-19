@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.components
 
 import android.content.Context
@@ -80,8 +82,7 @@ fun AppProfileSettingsCard(
                 
                 Text(
                     text = stringResource(R.string.app_profiles_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleLargeEmphasized,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -395,8 +396,7 @@ fun AppProfileSettingsCard(
             title = {
                 Text(
                     stringResource(R.string.app_profiles_permission_required),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleLargeEmphasized,
                     color = MaterialTheme.colorScheme.onSurface
                 ) 
             },

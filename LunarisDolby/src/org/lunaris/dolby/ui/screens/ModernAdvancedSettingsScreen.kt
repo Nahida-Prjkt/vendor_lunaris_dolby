@@ -3,22 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.screens
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import org.lunaris.dolby.R
@@ -30,27 +31,22 @@ import org.lunaris.dolby.ui.viewmodel.DolbyViewModel
 @Composable
 fun ModernAdvancedSettingsScreen(
     viewModel: DolbyViewModel,
-    navController: NavController
+    navController: NavController,
+    bottomPadding: Dp = 0.dp,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val listState = rememberLazyListState()
+    val showTitle by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        stringResource(R.string.dolby_category_adv_settings),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ) 
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+            DolbyTopAppBar(
+                title = stringResource(R.string.dolby_category_adv_settings),
+                showTitle = showTitle || uiState !is DolbyUiState.Success,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
         when (val state = uiState) {
@@ -67,8 +63,10 @@ fun ModernAdvancedSettingsScreen(
             is DolbyUiState.Success -> {
                 ModernAdvancedSettingsContent(
                     state = state,
+                    listState = listState,
                     viewModel = viewModel,
                     navController = navController,
+                    bottomPadding = bottomPadding,
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -105,15 +103,26 @@ fun ModernAdvancedSettingsScreen(
 @Composable
 private fun ModernAdvancedSettingsContent(
     state: DolbyUiState.Success,
+    listState: LazyListState,
     viewModel: DolbyViewModel,
     navController: NavController,
+    bottomPadding: Dp,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        state = listState,
+        contentPadding = PaddingValues(
+            start = 20.dp, top = 12.dp, end = 20.dp, bottom = 12.dp + bottomPadding,
+        ),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        item {
+            DolbyPageHeading(
+                title = stringResource(R.string.dolby_category_adv_settings),
+                subtitle = stringResource(R.string.dolby_advanced_summary),
+            )
+        }
         if (state.settings.enabled) {
             item {
                 ModernSettingsCard(
@@ -334,8 +343,5 @@ private fun ModernAdvancedSettingsContent(
             }
         }
         
-        item {
-            Spacer(modifier = Modifier.height(70.dp))
-        }
     }
 }

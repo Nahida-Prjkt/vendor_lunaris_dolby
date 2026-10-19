@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.components
 
 import androidx.compose.foundation.Canvas
@@ -287,26 +289,23 @@ fun InteractiveFrequencyResponseCurve(
         ) {
             Text(
                 text = "+15",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmallEmphasized,
                 color = plotInkColor,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(vertical = 12.dp)
             )
             Text(
                 text = "0",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmallEmphasized,
                 color = plotInkColor,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(vertical = 12.dp)
             )
             Text(
                 text = "-15",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmallEmphasized,
                 color = plotInkColor,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(vertical = 12.dp)
             )
         }
@@ -325,9 +324,8 @@ fun InteractiveFrequencyResponseCurve(
             ) {
                 Text(
                     text = "${if (gainDb >= 0) "+" else ""}%.1f dB".format(gainDb),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelLargeEmphasized,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }

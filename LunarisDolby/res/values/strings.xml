@@ -5,6 +5,13 @@
 -->
 <resources>
 
+    <!-- Expressive UI -->
+    <string name="dolby_credits">Credits</string>
+    <string name="dolby_more_options">More options</string>
+    <string name="dolby_save_preset">Save preset</string>
+    <string name="dolby_equalizer_summary">Shape your sound, frequency by frequency</string>
+    <string name="dolby_advanced_summary">Fine-tune the details of your listening experience</string>
+
     <!-- Dolby Atmos -->
     <string name="dolby_title">Dolby Atmos</string>
     <string name="dolby_summary">Experience immersive audio</string>
@@ -51,6 +58,7 @@
 
     <!-- Dolby profiles -->
     <string name="dolby_profile_dynamic">Dynamic</string>
+    <string name="dolby_profile_dynamic_summary">Automatically adapts to your audio</string>
     <string name="dolby_profile_video">Movie/Video</string>
     <string name="dolby_profile_music">Music</string>
     <string name="dolby_profile_game">Game</string>
@@ -117,6 +125,10 @@
     <string name="dolby_balanced">Balanced</string>
     <string name="dolby_warm">Warm</string>
     <string name="dolby_detailed">Detailed</string>
+    <string name="dolby_ieq_off_summary">Use the current profile without intelligent EQ.</string>
+    <string name="dolby_ieq_detailed_summary">Bring out subtle details and clarity.</string>
+    <string name="dolby_ieq_balanced_summary">Keep lows, mids, and highs in balance.</string>
+    <string name="dolby_ieq_warm_summary">Give your sound a softer, warmer character.</string>
 
     <!-- Per-App Audio Profiles -->
     <string name="app_profiles_title">Per-App Audio Profiles</string>
