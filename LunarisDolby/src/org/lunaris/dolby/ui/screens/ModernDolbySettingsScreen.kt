@@ -3,22 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.screens
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import org.lunaris.dolby.R
@@ -33,50 +33,35 @@ fun ModernDolbySettingsScreen(
     navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
+    val showTitle by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
     var showResetDialog by remember { mutableStateOf(false) }
     var showCreditsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            stringResource(R.string.dolby_title),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            stringResource(R.string.dolby_summary),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                expandedHeight = 92.dp,
+            DolbyTopAppBar(
+                title = stringResource(R.string.dolby_title),
+                showTitle = showTitle || uiState !is DolbyUiState.Success,
                 actions = {
                     IconButton(onClick = { showCreditsDialog = true }) {
                         Icon(
                             Icons.Default.Info, 
-                            contentDescription = "Credits",
+                            contentDescription = stringResource(R.string.dolby_credits),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     IconButton(onClick = { showResetDialog = true }) {
                         Icon(
                             Icons.Default.RestartAlt, 
-                            contentDescription = "Reset",
+                            contentDescription = stringResource(R.string.dolby_reset_all),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                }
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -104,6 +89,7 @@ fun ModernDolbySettingsScreen(
             is DolbyUiState.Success -> {
                 ModernDolbySettingsContent(
                     state = state,
+                    listState = listState,
                     viewModel = viewModel,
                     navController = navController,
                     modifier = Modifier.padding(paddingValues)
@@ -161,15 +147,23 @@ fun ModernDolbySettingsScreen(
 @Composable
 private fun ModernDolbySettingsContent(
     state: DolbyUiState.Success,
+    listState: LazyListState,
     viewModel: DolbyViewModel,
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        state = listState,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        item {
+            DolbyPageHeading(
+                title = stringResource(R.string.dolby_title),
+                subtitle = stringResource(R.string.dolby_summary),
+            )
+        }
         item {
             DolbyMainCard(
                 enabled = state.settings.enabled,
@@ -201,7 +195,7 @@ private fun ModernDolbySettingsContent(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 ModernSettingsCard(
-                    title = "Intelligent Equalizer",
+                    title = stringResource(R.string.dolby_ieq),
                     icon = Icons.Default.GraphicEq
                 ) {
                     ModernIeqSelector(
@@ -224,8 +218,5 @@ private fun ModernDolbySettingsContent(
             }
         }
         
-        item {
-            Spacer(modifier = Modifier.height(70.dp))
-        }
     }
 }

@@ -5,6 +5,13 @@
 -->
 <resources>
 
+    <!-- Expressive UI -->
+    <string name="dolby_credits">Credits</string>
+    <string name="dolby_more_options">More options</string>
+    <string name="dolby_save_preset">Save preset</string>
+    <string name="dolby_equalizer_summary">Shape your sound, frequency by frequency</string>
+    <string name="dolby_advanced_summary">Fine-tune the details of your listening experience</string>
+
     <!-- Dolby Atmos -->
     <string name="dolby_title">Dolby Atmos</string>
     <string name="dolby_summary">Experience immersive audio</string>

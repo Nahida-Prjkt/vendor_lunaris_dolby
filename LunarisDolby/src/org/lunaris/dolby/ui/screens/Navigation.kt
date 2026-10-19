@@ -6,24 +6,17 @@
 package org.lunaris.dolby.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -69,61 +62,53 @@ fun MainPagerScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+                contentAlignment = Alignment.Center,
+            ) {
+                FloatingNavToolbar(
+                    currentRoute = currentFakeRoute,
+                    onNavigate = { route ->
+                        coroutineScope.launch {
+                            when (route) {
+                                "settings" -> pagerState.animateScrollToPage(0)
+                                "equalizer" -> pagerState.animateScrollToPage(1)
+                                "advanced" -> pagerState.animateScrollToPage(2)
+                            }
+                        }
+                    },
+                )
+            }
+        },
+    ) { padding ->
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding),
         ) { page ->
             when (page) {
                 0 -> ModernDolbySettingsScreen(
                     viewModel = dolbyViewModel,
-                    navController = navController
+                    navController = navController,
                 )
                 1 -> ModernEqualizerScreen(
                     viewModel = equalizerViewModel,
-                    navController = navController
+                    navController = navController,
                 )
                 2 -> ModernAdvancedSettingsScreen(
                     viewModel = dolbyViewModel,
-                    navController = navController
+                    navController = navController,
                 )
             }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(130.dp)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.surfaceContainer
-                        )
-                    )
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .safeDrawingPadding(),
-            contentAlignment = Alignment.Center
-        ) {
-            FloatingNavToolbar(
-                currentRoute = currentFakeRoute,
-                onNavigate = { route ->
-                    coroutineScope.launch {
-                        when (route) {
-                            "settings" -> pagerState.animateScrollToPage(0)
-                            "equalizer" -> pagerState.animateScrollToPage(1)
-                            "advanced" -> pagerState.animateScrollToPage(2)
-                        }
-                    }
-                }
-            )
         }
     }
 }

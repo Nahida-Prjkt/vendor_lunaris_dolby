@@ -1,212 +1,120 @@
 /*
- * Copyright (C) 2024-2025 Lunaris AOSP
+ * Copyright (C) 2024-2026 Lunaris AOSP
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.components
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.lunaris.dolby.R
-import org.lunaris.dolby.utils.*
+import org.lunaris.dolby.utils.HapticFeedbackHelper
+import org.lunaris.dolby.utils.rememberHapticFeedback
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FloatingNavToolbar(
     currentRoute: String,
     onNavigate: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
-    
-    val isHomeSelected = currentRoute == "settings"
-    val isEqualizerSelected = currentRoute == "equalizer"
-    val isAdvancedSelected = currentRoute == "advanced"
-    
-    val containerColor = MaterialTheme.colorScheme.primaryContainer
-    val onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+    val navigate: (String) -> Unit = { route ->
+        if (route != currentRoute) {
+            scope.launch { haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK) }
+            onNavigate(route)
+        }
+    }
 
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = modifier
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .widthIn(max = 440.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 3.dp,
     ) {
-        HorizontalFloatingToolbar(
-            expanded = true,
-            colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(
-                toolbarContainerColor = containerColor,
-                toolbarContentColor = onContainerColor
-            ),
-            modifier = Modifier
-                .padding(
-                    top = FloatingToolbarDefaults.ScreenOffset,
-                    bottom = FloatingToolbarDefaults.ScreenOffset
-                )
-                .shadow(
-                    elevation = 12.dp,
-                    shape = MaterialTheme.shapes.extraLarge,
-                    ambientColor = MaterialTheme.colorScheme.scrim,
-                    spotColor = MaterialTheme.colorScheme.scrim
-                )
+        Row(
+            modifier = Modifier.padding(6.dp).selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             NavToolbarItem(
-                icon = Icons.Default.Home,
+                icon = Icons.Rounded.Home,
                 label = stringResource(R.string.home),
-                selected = isHomeSelected,
-                primaryColor = primaryColor,
-                onPrimaryColor = onPrimaryColor,
-                containerColor = containerColor,
-                onContainerColor = onContainerColor,
-                onClick = {
-                    scope.launch {
-                        haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
-                    }
-                    onNavigate("settings")
-                }
+                selected = currentRoute == "settings",
+                onClick = { navigate("settings") },
+                modifier = Modifier.weight(1f),
             )
-            
             NavToolbarItem(
-                icon = Icons.Default.GraphicEq,
+                icon = Icons.Rounded.GraphicEq,
                 label = stringResource(R.string.equalizer),
-                selected = isEqualizerSelected,
-                isEqualizer = true,
-                primaryColor = primaryColor,
-                onPrimaryColor = onPrimaryColor,
-                containerColor = containerColor,
-                onContainerColor = onContainerColor,
-                onClick = {
-                    scope.launch {
-                        haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
-                    }
-                    onNavigate("equalizer")
-                }
+                selected = currentRoute == "equalizer",
+                onClick = { navigate("equalizer") },
+                modifier = Modifier.weight(1f),
             )
-            
             NavToolbarItem(
-                icon = Icons.Default.Settings,
+                icon = Icons.Rounded.Tune,
                 label = stringResource(R.string.advanced),
-                selected = isAdvancedSelected,
-                primaryColor = primaryColor,
-                onPrimaryColor = onPrimaryColor,
-                containerColor = containerColor,
-                onContainerColor = onContainerColor,
-                onClick = {
-                    scope.launch {
-                        haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
-                    }
-                    onNavigate("advanced")
-                }
+                selected = currentRoute == "advanced",
+                onClick = { navigate("advanced") },
+                modifier = Modifier.weight(1f),
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun NavToolbarItem(
     icon: ImageVector,
     label: String,
     selected: Boolean,
-    primaryColor: Color,
-    onPrimaryColor: Color,
-    containerColor: Color,
-    onContainerColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isEqualizer: Boolean = false
 ) {
-    val currentSelectionKey = remember(selected) { selected }
-    
-    ToggleButton(
-        checked = selected,
-        onCheckedChange = { onClick() },
-        colors = ToggleButtonDefaults.toggleButtonColors(
-            containerColor = containerColor,
-            contentColor = onContainerColor,
-            checkedContainerColor = primaryColor,
-            checkedContentColor = onPrimaryColor
-        ),
-        shapes = ToggleButtonDefaults.shapes(
-            androidx.compose.foundation.shape.CircleShape,
-            androidx.compose.foundation.shape.CircleShape,
-            androidx.compose.foundation.shape.CircleShape
-        ),
-        modifier = modifier.height(48.dp)
+    val containerColor by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "navigation_container",
+    )
+    Surface(
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 64.dp).semantics { role = Role.Tab },
+        shape = RoundedCornerShape(26.dp),
+        color = containerColor,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.animateContentSize(
-                animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-            )
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            key(currentSelectionKey) {
-                Crossfade(
-                    targetState = isEqualizer,
-                    animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                    label = "icon_transition_$label"
-                ) { isEq ->
-                    if (isEq) {
-                        AnimatedEqualizerIconDynamic(
-                            modifier = if (selected) Modifier else Modifier.semantics {
-                                contentDescription = label
-                            },
-                            color = if (selected) onPrimaryColor else onContainerColor,
-                            size = 24.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = label,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
-            
-            AnimatedVisibility(
-                visible = selected,
-                enter = expandHorizontally(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                    expandFrom = Alignment.Start
-                ) + fadeIn(
-                    animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()
-                ),
-                exit = shrinkHorizontally(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                    shrinkTowards = Alignment.Start
-                ) + fadeOut(
-                    animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()
-                ),
-                label = "text_visibility_$label"
-            ) {
-                Text(
-                    text = label,
-                    fontSize = 16.sp,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Clip,
-                    modifier = Modifier.padding(start = ButtonDefaults.IconSpacing)
-                )
-            }
+            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
+            Text(
+                label,
+                style = if (selected) MaterialTheme.typography.labelMediumEmphasized
+                    else MaterialTheme.typography.labelMedium,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
         }
     }
 }
