@@ -7,13 +7,23 @@
 
 package org.lunaris.dolby.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -21,11 +31,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.lunaris.dolby.R
@@ -42,66 +56,50 @@ fun FloatingNavToolbar(
     val scope = rememberCoroutineScope()
     val routes = listOf("settings", "equalizer", "advanced")
     val selectedIndex = routes.indexOf(currentRoute).coerceAtLeast(0)
-    val fontScale = LocalDensity.current.fontScale
-    val width = 360.dp * fontScale.coerceIn(1f, 1.3f)
 
-    HorizontalFloatingToolbar(
-        expanded = true,
-        modifier = modifier,
-        shape = CircleShape,
-        contentPadding = PaddingValues(6.dp),
-        expandedShadowElevation = 6.dp,
-        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-            toolbarContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            toolbarContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
+    Surface(
+        modifier = modifier
+            .widthIn(max = 440.dp)
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 0.dp,
+        tonalElevation = 2.dp,
     ) {
-        BoxWithConstraints(Modifier.widthIn(max = width).width(width)) {
-            val itemWidth = maxWidth / routes.size
-            val compact = maxWidth / fontScale < 320.dp
-            val offset by animateDpAsState(
-                targetValue = itemWidth * selectedIndex,
-                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                label = "navigation_selection",
-            )
-
-            Box {
-                Box(Modifier.matchParentSize()) {
-                    Box(
-                        Modifier.offset(x = offset)
-                            .width(itemWidth)
-                            .fillMaxHeight()
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                    )
-                }
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup()) {
-                    routes.forEachIndexed { index, route ->
-                        NavToolbarItem(
-                            icon = when (route) {
-                                "equalizer" -> Icons.Rounded.GraphicEq
-                                "advanced" -> Icons.Rounded.Tune
-                                else -> Icons.Rounded.Home
-                            },
-                            label = stringResource(when (route) {
-                                "equalizer" -> R.string.equalizer
-                                "advanced" -> R.string.advanced
-                                else -> R.string.home
-                            }),
-                            selected = selectedIndex == index,
-                            compact = compact,
-                            onClick = {
-                                if (route != currentRoute) {
-                                    scope.launch {
-                                        haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
-                                    }
-                                    onNavigate(route)
-                                }
-                            },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                        )
-                    }
-                }
+        Row(
+            modifier = Modifier.padding(6.dp).selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            routes.forEachIndexed { index, route ->
+                val selected = selectedIndex == index
+                val weight by animateFloatAsState(
+                    targetValue = if (selected) 2.2f else 1f,
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                    label = "navigation_width",
+                )
+                NavToolbarItem(
+                    icon = when (route) {
+                        "equalizer" -> Icons.Rounded.GraphicEq
+                        "advanced" -> Icons.Rounded.Tune
+                        else -> Icons.Rounded.Home
+                    },
+                    label = stringResource(when (route) {
+                        "equalizer" -> R.string.equalizer
+                        "advanced" -> R.string.advanced
+                        else -> R.string.home
+                    }),
+                    selected = selected,
+                    onClick = {
+                        if (route != currentRoute) {
+                            scope.launch {
+                                haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
+                            }
+                            onNavigate(route)
+                        }
+                    },
+                    modifier = Modifier.weight(weight),
+                )
             }
         }
     }
@@ -112,42 +110,70 @@ private fun NavToolbarItem(
     icon: ImageVector,
     label: String,
     selected: Boolean,
-    compact: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val color by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSecondaryContainer,
-        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
-        label = "navigation_content",
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "navigation_press",
     )
-    val itemModifier = modifier
-        .heightIn(min = 48.dp)
-        .clip(CircleShape)
-        .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-        .squishable(scaleDown = 0.95f)
-        .padding(horizontal = 8.dp, vertical = 10.dp)
-    val content: @Composable () -> Unit = {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = color)
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLargeEmphasized,
-            color = color,
-            textAlign = TextAlign.Center,
-        )
-    }
-    if (compact) {
-        Column(
-            modifier = itemModifier,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-        ) { content() }
-    } else {
-        Row(
-            modifier = itemModifier,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-        ) { content() }
+    val radius by animateDpAsState(
+        targetValue = if (pressed) 16.dp else 26.dp,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "navigation_shape",
+    )
+    val background by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer
+            else Color.Transparent,
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "navigation_color",
+    )
+    Row(
+        modifier = modifier
+            .heightIn(min = 52.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(radius))
+            .background(background)
+            .selectable(
+                selected = selected,
+                interactionSource = interaction,
+                indication = LocalIndication.current,
+                role = Role.Tab,
+                onClick = onClick,
+            )
+            .semantics { contentDescription = label }
+            .padding(horizontal = 8.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CompositionLocalProvider(
+            LocalContentColor provides if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+            AnimatedVisibility(
+                visible = selected,
+                enter = fadeIn() + expandHorizontally(MaterialTheme.motionScheme.defaultSpatialSpec()),
+                exit = fadeOut() + shrinkHorizontally(),
+            ) {
+                Text(
+                    text = label,
+                    modifier = Modifier.padding(start = 6.dp).clearAndSetSemantics {},
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelLargeEmphasized,
+                )
+            }
+        }
     }
 }
