@@ -116,7 +116,7 @@ fun MainPagerScreen(
                         WindowInsets.navigationBars.union(WindowInsets.displayCutout)
                             .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
                     )
-                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
                     .onSizeChanged { toolbarHeightPx = it.height },
             )
         }
