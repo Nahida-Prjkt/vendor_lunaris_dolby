@@ -73,11 +73,6 @@ fun FloatingNavToolbar(
         ) {
             routes.forEachIndexed { index, route ->
                 val selected = selectedIndex == index
-                val weight by animateFloatAsState(
-                    targetValue = if (selected) 2.2f else 1f,
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                    label = "navigation_width",
-                )
                 NavToolbarItem(
                     icon = when (route) {
                         "equalizer" -> Icons.Rounded.GraphicEq
@@ -98,7 +93,6 @@ fun FloatingNavToolbar(
                             onNavigate(route)
                         }
                     },
-                    modifier = Modifier.weight(weight),
                 )
             }
         }
@@ -133,7 +127,7 @@ private fun NavToolbarItem(
     )
     Row(
         modifier = modifier
-            .heightIn(min = 52.dp)
+            .sizeIn(minWidth = 52.dp, minHeight = 52.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -148,7 +142,7 @@ private fun NavToolbarItem(
                 onClick = onClick,
             )
             .semantics { contentDescription = label }
-            .padding(horizontal = 8.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
