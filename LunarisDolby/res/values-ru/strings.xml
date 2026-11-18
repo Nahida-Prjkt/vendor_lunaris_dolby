@@ -6,6 +6,8 @@
 <resources>
     <!-- Dolby Atmos -->
     <string name="dolby_title">Dolby Atmos</string>
+    <string name="dolby_immersive_on">Иммерсивный звук включён</string>
+    <string name="dolby_immersive_off">Иммерсивный звук выключен</string>
     <string name="dolby_enable">Включить Dolby Atmos</string>
     <string name="dolby_profile_title">Выберите профиль</string>
     <string name="dolby_preset">Эквалайзер</string>

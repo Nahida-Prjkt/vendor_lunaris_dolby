@@ -7,6 +7,8 @@
 
     <!-- Dolby Atmos -->
     <string name="dolby_title">دالبی اتموس</string>
+    <string name="dolby_immersive_on">صدای فراگیر روشن است</string>
+    <string name="dolby_immersive_off">صدای فراگیر خاموش است</string>
     <string name="dolby_enable">استفاده از دالبی اتموس</string>
     <string name="dolby_profile_title">یک پروفایل انتخاب کنید</string>
     <string name="dolby_preset">اکولایزر</string>

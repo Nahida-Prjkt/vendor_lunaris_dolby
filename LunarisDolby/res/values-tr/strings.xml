@@ -7,6 +7,8 @@
 
     <!-- Dolby Atmos -->
     <string name="dolby_title">Dolby Atmos</string>
+    <string name="dolby_immersive_on">Sürükleyici ses açık</string>
+    <string name="dolby_immersive_off">Sürükleyici ses kapalı</string>
     <string name="dolby_enable">Dolby Atmos\'u aktif et</string>
     <string name="dolby_profile_title">Profil Seç</string>
     <string name="dolby_preset">Ekolayzer</string>

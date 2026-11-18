@@ -14,6 +14,8 @@
 
     <!-- Dolby Atmos -->
     <string name="dolby_title">Dolby Atmos</string>
+    <string name="dolby_immersive_on">Audio imersif aktif</string>
+    <string name="dolby_immersive_off">Audio imersif nonaktif</string>
     <string name="dolby_enable">Gunakan Dolby Atmos</string>
     <string name="dolby_profile_title">Pilih profil</string>
     <string name="dolby_preset">Equalizer</string>

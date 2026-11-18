@@ -7,6 +7,8 @@
 
     <!-- Dolby Atmos -->
     <string name="dolby_title">Dolby Atmos</string>
+    <string name="dolby_immersive_on">Dźwięk immersyjny włączony</string>
+    <string name="dolby_immersive_off">Dźwięk immersyjny wyłączony</string>
     <string name="dolby_enable">Użyj Dolby Atmos</string>
     <string name="dolby_profile_title">Wybierz profil</string>
     <string name="dolby_preset">Korektor</string>
