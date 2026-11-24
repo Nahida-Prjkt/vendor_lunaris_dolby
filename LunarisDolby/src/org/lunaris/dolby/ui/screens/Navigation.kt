@@ -1,12 +1,29 @@
 /*
- * Copyright (C) 2024-2025 Lunaris AOSP
+ * Copyright (C) 2024-2026 Lunaris AOSP
  * SPDX-License-Identifier: Apache-2.0
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package org.lunaris.dolby.ui.screens
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -58,10 +76,8 @@ fun MainPagerScreen(
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     var toolbarHeightPx by remember { mutableIntStateOf(0) }
-    val toolbarBottomPadding = with(density) { toolbarHeightPx.toDp() } + 32.dp
+    val toolbarBottomPadding = with(density) { toolbarHeightPx.toDp() } + 36.dp
 
-    // Follow the destination as soon as navigation starts so the pill moves
-    // alongside the page transition, including when a swipe changes its target.
     val currentRoute = when (pagerState.targetPage) {
         0 -> "settings"
         1 -> "equalizer"
@@ -116,7 +132,7 @@ fun MainPagerScreen(
                         WindowInsets.navigationBars.union(WindowInsets.displayCutout)
                             .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
                     )
-                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 14.dp)
                     .onSizeChanged { toolbarHeightPx = it.height },
             )
         }
@@ -129,10 +145,29 @@ fun DolbyNavHost(
     equalizerViewModel: EqualizerViewModel
 ) {
     val navController = rememberNavController()
+    val spatialOffsetSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
+    val spatialFloatSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    val effectsSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
 
     NavHost(
         navController = navController,
-        startDestination = "main_pager"
+        startDestination = "main_pager",
+        enterTransition = {
+            slideInHorizontally(animationSpec = spatialOffsetSpec) { it / 5 } +
+                fadeIn(animationSpec = effectsSpec)
+        },
+        exitTransition = {
+            scaleOut(targetScale = 0.96f, animationSpec = spatialFloatSpec) +
+                fadeOut(animationSpec = effectsSpec)
+        },
+        popEnterTransition = {
+            scaleIn(initialScale = 0.96f, animationSpec = spatialFloatSpec) +
+                fadeIn(animationSpec = effectsSpec)
+        },
+        popExitTransition = {
+            slideOutHorizontally(animationSpec = spatialOffsetSpec) { it / 5 } +
+                fadeOut(animationSpec = effectsSpec)
+        }
     ) {
         composable("main_pager") {
             MainPagerScreen(
@@ -141,7 +176,7 @@ fun DolbyNavHost(
                 navController = navController
             )
         }
-        
+
         composable(Screen.AppProfiles.route) {
             val context = LocalContext.current
             val appProfileViewModel: AppProfileViewModel = viewModel(
@@ -149,13 +184,13 @@ fun DolbyNavHost(
                     context.applicationContext as android.app.Application
                 )
             )
-            
+
             AppProfileScreen(
                 viewModel = appProfileViewModel,
                 navController = navController
             )
         }
-        
+
         composable(Screen.ImportExport.route) {
             PresetImportExportScreen(
                 viewModel = equalizerViewModel,

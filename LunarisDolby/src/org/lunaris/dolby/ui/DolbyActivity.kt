@@ -107,7 +107,7 @@ class DolbyActivity : ComponentActivity() {
             DolbyTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    color = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.onSurface
                 ) {
                     DolbyNavHost(

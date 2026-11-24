@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Lunaris AOSP
+ * Copyright (C) 2024-2026 Lunaris AOSP
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,20 +12,66 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.LruCache
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Translate
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +82,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +95,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import org.lunaris.dolby.R
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -79,9 +127,9 @@ fun CreditsDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    
+
     val repoUrl = "https://github.com/Pong-Development/hardware_dolby"
-    
+
     val mainContributors = listOf(
         Contributor(
             name = "Ghost",
@@ -114,7 +162,7 @@ fun CreditsDialog(
             isHighlighted = true
         )
     )
-    
+
     val translationEntries = listOf(
         translation("Spanish (Spain)", t("sm6150-dreams")),
         translation("Portuguese (Brazil)", t("SMarcosS", "S-Marcos-S")),
@@ -125,15 +173,15 @@ fun CreditsDialog(
         translation("Russian", t("Dmitry", "dkpost3")),
         translation("Persian", t("Arman Altafi", "Arman-ATI"))
     )
-    
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.85f),
+                .fillMaxWidth(0.94f)
+                .fillMaxHeight(0.86f),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -145,7 +193,7 @@ fun CreditsDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp)
+                        .height(152.dp)
                         .background(
                             brush = Brush.linearGradient(
                                 colors = listOf(
@@ -153,33 +201,58 @@ fun CreditsDialog(
                                     MaterialTheme.colorScheme.tertiaryContainer
                                 )
                             )
-                        ),
-                    contentAlignment = Alignment.Center
+                        )
                 ) {
+                    FilledTonalIconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(14.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.dolby_close)
+                        )
+                    }
+
                     Column(
+                        modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Surface(
+                            modifier = Modifier.size(58.dp),
+                            shape = MaterialShapes.Cookie9Sided.toShape(),
+                            color = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Favorite,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = "Credits & Contributors",
-                            style = MaterialTheme.typography.headlineMediumEmphasized,
+                            style = MaterialTheme.typography.headlineSmallEmphasized,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
+
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
                     contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     item {
                         Card(
@@ -196,10 +269,10 @@ fun CreditsDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Info,
+                                    imageVector = Icons.Rounded.Info,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
@@ -210,21 +283,21 @@ fun CreditsDialog(
                             }
                         }
                     }
+
                     item {
-                        Card(
+                        val repoInteraction = remember { MutableInteractionSource() }
+                        Surface(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(repoUrl))
+                                context.startActivity(intent)
+                            },
+                            interactionSource = repoInteraction,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(MaterialTheme.shapes.large)
-                                .clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(repoUrl))
-                                    context.startActivity(intent)
-                                },
+                                .expressivePress(repoInteraction, scaleDown = 0.97f),
                             shape = MaterialTheme.shapes.large,
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         ) {
                             Row(
                                 modifier = Modifier
@@ -233,16 +306,16 @@ fun CreditsDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Surface(
-                                    modifier = Modifier.size(40.dp),
-                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.size(42.dp),
+                                    shape = RoundedCornerShape(14.dp),
                                     color = MaterialTheme.colorScheme.primary
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            imageVector = Icons.Default.Code,
+                                            imageVector = Icons.Rounded.Code,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(22.dp)
                                         )
                                     }
                                 }
@@ -256,11 +329,11 @@ fun CreditsDialog(
                                     Text(
                                         text = "hardware_dolby",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                                     )
                                 }
                                 Icon(
-                                    imageVector = Icons.Default.OpenInNew,
+                                    imageVector = Icons.Rounded.OpenInNew,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(20.dp)
@@ -268,25 +341,29 @@ fun CreditsDialog(
                             }
                         }
                     }
+
                     item {
                         Text(
                             text = "Main Contributors",
                             style = MaterialTheme.typography.titleMediumEmphasized,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            modifier = Modifier.padding(top = 6.dp)
                         )
                     }
+
                     items(mainContributors) { contributor ->
                         ContributorCard(contributor = contributor)
                     }
+
                     item {
                         Text(
                             text = "Translation Contributors",
                             style = MaterialTheme.typography.titleMediumEmphasized,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            modifier = Modifier.padding(top = 6.dp)
                         )
                     }
+
                     items(translationEntries.chunked(2)) { rowEntries ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -302,6 +379,7 @@ fun CreditsDialog(
                             }
                         }
                     }
+
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -317,17 +395,15 @@ fun CreditsDialog(
                                     .fillMaxWidth()
                                     .padding(16.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Surface(
-                                        modifier = Modifier.size(40.dp),
-                                        shape = MaterialTheme.shapes.medium,
+                                        modifier = Modifier.size(42.dp),
+                                        shape = RoundedCornerShape(14.dp),
                                         color = MaterialTheme.colorScheme.primary
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Icon(
-                                                imageVector = Icons.Default.Translate,
+                                                imageVector = Icons.Rounded.Translate,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.size(22.dp)
@@ -345,34 +421,38 @@ fun CreditsDialog(
                                         Text(
                                             text = "Help us make Lunaris Dolby better in your language! Submit or update translations on GitHub.",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.88f)
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(14.dp))
                                 Button(
                                     onClick = {
                                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("$repoUrl/pulls"))
                                         context.startActivity(intent)
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.large,
+                                    shape = CircleShape,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,
                                         contentColor = MaterialTheme.colorScheme.onPrimary
                                     )
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.OpenInNew,
+                                        imageVector = Icons.Rounded.OpenInNew,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Submit a Pull Request")
+                                    Text(
+                                        text = "Submit a Pull Request",
+                                        style = MaterialTheme.typography.labelLargeEmphasized
+                                    )
                                 }
                             }
                         }
                     }
+
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -390,10 +470,10 @@ fun CreditsDialog(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.People,
+                                    imageVector = Icons.Rounded.People,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(30.dp)
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
@@ -413,32 +493,33 @@ fun CreditsDialog(
                             }
                         }
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
                 }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Button(
                         onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth(0.5f),
-                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.fillMaxWidth(0.55f),
+                        shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Rounded.Close,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Close")
+                        Text(
+                            text = stringResource(R.string.dolby_close),
+                            style = MaterialTheme.typography.labelLargeEmphasized
+                        )
                     }
                 }
             }
@@ -452,60 +533,61 @@ private fun ContributorCard(
 ) {
     val context = LocalContext.current
     val githubUrl = "https://github.com/${contributor.githubUsername}"
-    
-    Card(
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val onContainer = if (contributor.isHighlighted) {
+        MaterialTheme.colorScheme.onTertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val onContainerMuted = if (contributor.isHighlighted) {
+        MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val linkColor = if (contributor.isHighlighted) {
+        MaterialTheme.colorScheme.onTertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
+    Surface(
+        onClick = {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
+            context.startActivity(intent)
+        },
+        interactionSource = interactionSource,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .clickable {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
-                context.startActivity(intent)
-            },
-        shape = if (contributor.isHighlighted)
-            MaterialTheme.shapes.extraLarge
-        else
-            MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = if (contributor.isHighlighted)
-                MaterialTheme.colorScheme.tertiaryContainer
-            else
-                MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = if (contributor.isHighlighted)
-                MaterialTheme.colorScheme.onTertiaryContainer
-            else
-                MaterialTheme.colorScheme.onSurface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            .expressivePress(interactionSource, scaleDown = 0.97f),
+        shape = if (contributor.isHighlighted) {
+            MaterialTheme.shapes.large
+        } else {
+            MaterialTheme.shapes.medium
+        },
+        color = if (contributor.isHighlighted) {
+            MaterialTheme.colorScheme.tertiaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        contentColor = onContainer
     ) {
-        val onContainer = if (contributor.isHighlighted)
-            MaterialTheme.colorScheme.onTertiaryContainer
-        else
-            MaterialTheme.colorScheme.onSurface
-        val onContainerMuted = if (contributor.isHighlighted)
-            MaterialTheme.colorScheme.onTertiaryContainer
-        else
-            MaterialTheme.colorScheme.onSurfaceVariant
-        val linkColor = if (contributor.isHighlighted)
-            MaterialTheme.colorScheme.onTertiaryContainer
-        else
-            MaterialTheme.colorScheme.primary
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             GithubAvatar(
                 username = contributor.githubUsername,
                 modifier = Modifier.size(48.dp),
-                iconSize = 28.dp,
-                shape = MaterialTheme.shapes.medium,
+                iconSize = 26.dp,
+                shape = RoundedCornerShape(16.dp),
                 isHighlighted = contributor.isHighlighted
             )
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
+
+            Spacer(modifier = Modifier.width(14.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = contributor.name,
@@ -513,11 +595,9 @@ private fun ContributorCard(
                     color = onContainer
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Code,
+                        imageVector = Icons.Rounded.Code,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
                         tint = linkColor
@@ -525,7 +605,7 @@ private fun ContributorCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "@${contributor.githubUsername}",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = linkColor
                     )
                 }
@@ -538,10 +618,10 @@ private fun ContributorCard(
             }
 
             Icon(
-                imageVector = Icons.Default.OpenInNew,
+                imageVector = Icons.Rounded.OpenInNew,
                 contentDescription = null,
                 tint = onContainerMuted,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
     }
@@ -554,7 +634,8 @@ private fun CompactTranslationCard(
     val context = LocalContext.current
     val translators = entry.translators
     var currentIndex by remember { mutableIntStateOf(0) }
-    
+    val interactionSource = remember { MutableInteractionSource() }
+
     LaunchedEffect(translators.size) {
         if (translators.size > 1) {
             while (isActive) {
@@ -563,29 +644,27 @@ private fun CompactTranslationCard(
             }
         }
     }
-    
+
     val currentTranslator = translators.getOrElse(currentIndex) { translators.first() }
     val githubUrl = "https://github.com/${currentTranslator.githubUsername}"
-    
-    Card(
+
+    Surface(
+        onClick = {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
+            context.startActivity(intent)
+        },
+        interactionSource = interactionSource,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .clickable {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
-                context.startActivity(intent)
-            },
+            .expressivePress(interactionSource, scaleDown = 0.96f),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -597,20 +676,25 @@ private fun CompactTranslationCard(
                     currentIndex = currentIndex
                 )
                 Icon(
-                    imageVector = Icons.Default.OpenInNew,
+                    imageVector = Icons.Rounded.OpenInNew,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val motionScheme = MaterialTheme.motionScheme
             AnimatedContent(
                 targetState = currentTranslator,
                 transitionSpec = {
-                    (slideInVertically { height -> height } + fadeIn(animationSpec = tween(300)))
-                        .togetherWith(slideOutVertically { height -> -height } + fadeOut(animationSpec = tween(300)))
+                    (slideInVertically(motionScheme.defaultSpatialSpec()) { height -> height } +
+                        fadeIn(motionScheme.defaultEffectsSpec()))
+                        .togetherWith(
+                            slideOutVertically(motionScheme.defaultSpatialSpec()) { height -> -height } +
+                                fadeOut(motionScheme.fastEffectsSpec())
+                        )
                 },
                 label = "TranslatorInfoAnimation"
             ) { target ->
@@ -631,12 +715,12 @@ private fun CompactTranslationCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(2.dp))
-            
+
             Text(
                 text = entry.language,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -672,13 +756,16 @@ private fun StackedAvatars(
         translators.forEachIndexed { index, translator ->
             val isActive = index == currentIndex
             val animatedScale by animateFloatAsState(
-                targetValue = if (isActive || count == 1) 1f else 0.8f,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                targetValue = if (isActive || count == 1) 1f else 0.82f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
                 label = "avatarScale_$index"
             )
             val animatedAlpha by animateFloatAsState(
                 targetValue = if (isActive || count == 1) 1f else 0.65f,
-                animationSpec = tween(300),
+                animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                 label = "avatarAlpha_$index"
             )
             val zIndex = if (isActive) 10f else (count - index).toFloat()
@@ -696,14 +783,14 @@ private fun StackedAvatars(
                     .border(
                         width = if (count > 1) 1.5.dp else 0.dp,
                         color = ringColor,
-                        shape = MaterialTheme.shapes.medium
+                        shape = RoundedCornerShape(12.dp)
                     )
             ) {
                 GithubAvatar(
                     username = translator.githubUsername,
                     modifier = Modifier.size(avatarSize),
                     iconSize = 20.dp,
-                    shape = MaterialTheme.shapes.medium
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         }
@@ -715,7 +802,7 @@ private val avatarCache = LruCache<String, Bitmap>(30)
 private suspend fun fetchGithubAvatar(username: String): Bitmap? = withContext(Dispatchers.IO) {
     if (username.isBlank()) return@withContext null
     avatarCache.get(username)?.let { return@withContext it }
-    
+
     var connection: HttpURLConnection? = null
     try {
         val url = URL("https://github.com/$username.png?size=96")
@@ -724,7 +811,7 @@ private suspend fun fetchGithubAvatar(username: String): Bitmap? = withContext(D
         connection.readTimeout = 10000
         connection.instanceFollowRedirects = true
         connection.setRequestProperty("User-Agent", "Lunaris-Dolby/1.0")
-        
+
         val responseCode = connection.responseCode
         if (responseCode == HttpURLConnection.HTTP_OK) {
             connection.inputStream.use { input ->
@@ -749,7 +836,7 @@ private fun GithubAvatar(
     username: String,
     modifier: Modifier = Modifier,
     iconSize: Dp = 24.dp,
-    shape: Shape = MaterialTheme.shapes.medium,
+    shape: Shape = RoundedCornerShape(14.dp),
     isHighlighted: Boolean = false
 ) {
     val bitmapState = produceState<Bitmap?>(initialValue = avatarCache.get(username), username) {
@@ -757,7 +844,7 @@ private fun GithubAvatar(
             value = fetchGithubAvatar(username)
         }
     }
-    
+
     val bitmap = bitmapState.value
     if (bitmap != null) {
         Image(
@@ -770,24 +857,24 @@ private fun GithubAvatar(
         Surface(
             modifier = modifier,
             shape = shape,
-            color = if (isHighlighted)
+            color = if (isHighlighted) {
                 MaterialTheme.colorScheme.tertiary
-            else
+            } else {
                 MaterialTheme.colorScheme.primary
+            }
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = Icons.Rounded.Person,
                     contentDescription = null,
-                    tint = if (isHighlighted)
+                    tint = if (isHighlighted) {
                         MaterialTheme.colorScheme.onTertiary
-                    else
-                        MaterialTheme.colorScheme.onPrimary,
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    },
                     modifier = Modifier.size(iconSize)
                 )
             }
         }
     }
 }
-
-

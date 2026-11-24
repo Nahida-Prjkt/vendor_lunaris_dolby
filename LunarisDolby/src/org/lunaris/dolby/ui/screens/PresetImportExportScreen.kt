@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Lunaris AOSP
+ * Copyright (C) 2024-2026 Lunaris AOSP
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,21 +9,68 @@ package org.lunaris.dolby.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.FolderCopy
+import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.toShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
@@ -31,7 +78,14 @@ import org.lunaris.dolby.R
 import org.lunaris.dolby.data.PresetExportManager
 import org.lunaris.dolby.domain.models.EqualizerPreset
 import org.lunaris.dolby.domain.models.EqualizerUiState
+import org.lunaris.dolby.ui.components.CompactFrequencyResponseCurve
+import org.lunaris.dolby.ui.components.DolbyPageHeading
+import org.lunaris.dolby.ui.components.DolbyTopAppBar
+import org.lunaris.dolby.ui.components.ExpressiveEmptyState
+import org.lunaris.dolby.ui.components.ExpressiveLoadingState
 import org.lunaris.dolby.ui.components.ModernConfirmDialog
+import org.lunaris.dolby.ui.components.ModernSettingsCard
+import org.lunaris.dolby.ui.components.groupedItemShape
 import org.lunaris.dolby.ui.viewmodel.EqualizerViewModel
 import org.lunaris.dolby.utils.ToastHelper
 
@@ -45,13 +99,22 @@ fun PresetImportExportScreen(
     val scope = rememberCoroutineScope()
     val exportManager = remember { PresetExportManager(context) }
     val uiState by viewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
+    val showTitle by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+    val isScrolled by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 8 }
+    }
+
     var selectedPreset by remember { mutableStateOf<EqualizerPreset?>(null) }
-    var showExportOptions by remember { mutableStateOf(false) }
     var showBatchExport by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var presetToDelete by remember { mutableStateOf<EqualizerPreset?>(null) }
     var isLoading by remember { mutableStateOf(false) }
-    
+
+    val userPresets = remember(uiState) {
+        (uiState as? EqualizerUiState.Success)?.presets?.filter { it.isUserDefined }.orEmpty()
+    }
+
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
@@ -61,19 +124,18 @@ fun PresetImportExportScreen(
                     isLoading = true
                     exportManager.exportPresetToFile(preset, uri).fold(
                         onSuccess = {
-                            ToastHelper.showToast(context, "Preset exported successfully!")
+                            ToastHelper.showToast(context, context.getString(R.string.preset_export_success))
                         },
                         onFailure = { e ->
-                            ToastHelper.showToast(context, "Export failed: ${e.message}")
+                            ToastHelper.showToast(context, "${context.getString(R.string.preset_export_failed)}: ${e.message}")
                         }
                     )
                     isLoading = false
-                    showExportOptions = false
                 }
             }
         }
     }
-    
+
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -87,21 +149,21 @@ fun PresetImportExportScreen(
                             ToastHelper.showToast(context, error)
                         } else {
                             ToastHelper.showToast(
-                                context, 
+                                context,
                                 "Preset '${preset.name}' imported! (${preset.bandMode.displayName})"
                             )
                             viewModel.loadEqualizer()
                         }
                     },
                     onFailure = { e ->
-                        ToastHelper.showToast(context, "Import failed: ${e.message}")
+                        ToastHelper.showToast(context, "${context.getString(R.string.preset_import_failed)}: ${e.message}")
                     }
                 )
                 isLoading = false
             }
         }
     }
-    
+
     val batchExportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
@@ -110,7 +172,7 @@ fun PresetImportExportScreen(
                 isLoading = true
                 val state = uiState as? EqualizerUiState.Success
                 val presets = state?.presets?.filter { it.isUserDefined } ?: emptyList()
-                
+
                 exportManager.exportMultiplePresets(presets, uri).fold(
                     onSuccess = {
                         ToastHelper.showToast(context, "${presets.size} presets exported!")
@@ -124,7 +186,7 @@ fun PresetImportExportScreen(
             }
         }
     }
-    
+
     val batchImportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -140,7 +202,7 @@ fun PresetImportExportScreen(
                             }
                         }
                         ToastHelper.showToast(
-                            context, 
+                            context,
                             "Imported $successCount of ${presets.size} presets"
                         )
                         viewModel.loadEqualizer()
@@ -156,119 +218,130 @@ fun PresetImportExportScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        stringResource(R.string.import_export_presets),
-                        style = MaterialTheme.typography.headlineMediumEmphasized,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ) 
-                },
+            DolbyTopAppBar(
+                title = stringResource(R.string.import_export_presets),
+                showTitle = showTitle || uiState !is EqualizerUiState.Success,
+                scrolled = isScrolled,
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    FilledTonalIconButton(
+                        onClick = { navController.navigateUp() },
+                        modifier = Modifier.padding(start = 8.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack, 
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.dolby_back)
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showBatchExport = true }) {
-                        Icon(
-                            Icons.Default.FileDownload, 
-                            contentDescription = "Batch export",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                    if (userPresets.isNotEmpty()) {
+                        FilledTonalIconButton(
+                            onClick = { showBatchExport = true },
+                            modifier = Modifier.padding(end = 8.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.FileDownload,
+                                contentDescription = stringResource(R.string.batch_export)
+                            )
+                        }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                }
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            when (val state = uiState) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when (uiState) {
                 is EqualizerUiState.Success -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .navigationBarsPadding(),
+                        contentPadding = PaddingValues(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 28.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.extraLarge,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                                )
+                        item(key = "heading") {
+                            DolbyPageHeading(
+                                title = stringResource(R.string.import_export_presets),
+                                subtitle = stringResource(R.string.import_export_subtitle),
+                            )
+                        }
+
+                        item(key = "import_card") {
+                            ModernSettingsCard(
+                                title = stringResource(R.string.import_presets),
+                                subtitle = stringResource(R.string.import_presets_description),
+                                icon = Icons.Rounded.FileDownload
                             ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    ) {
-                                        Surface(
-                                            modifier = Modifier.size(40.dp),
-                                            shape = MaterialTheme.shapes.medium,
-                                            color = MaterialTheme.colorScheme.primaryContainer
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    Icons.Default.FileDownload,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            stringResource(R.string.import_presets),
-                                            style = MaterialTheme.typography.titleLargeEmphasized,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    Text(
-                                        stringResource(R.string.import_presets_description),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    )
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Button(
                                             onClick = { importLauncher.launch("*/*") },
-                                            modifier = Modifier.weight(1f),
-                                            shape = MaterialTheme.shapes.large,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp),
+                                            shape = CircleShape,
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary,
                                                 contentColor = MaterialTheme.colorScheme.onPrimary
                                             )
                                         ) {
-                                            Icon(Icons.Default.FolderOpen, contentDescription = null)
-                                            Spacer(Modifier.width(8.dp))
-                                            Text(stringResource(R.string.import_single_file))
+                                            Icon(
+                                                imageVector = Icons.Rounded.FolderOpen,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                text = stringResource(R.string.import_single_file),
+                                                style = MaterialTheme.typography.labelLargeEmphasized,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
                                         }
                                         Button(
                                             onClick = { batchImportLauncher.launch("*/*") },
-                                            modifier = Modifier.weight(1f),
-                                            shape = MaterialTheme.shapes.large,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(48.dp),
+                                            shape = CircleShape,
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary,
                                                 contentColor = MaterialTheme.colorScheme.onPrimary
                                             )
                                         ) {
-                                            Icon(Icons.Default.FolderCopy, contentDescription = null)
-                                            Spacer(Modifier.width(8.dp))
-                                            Text(stringResource(R.string.import_batch))
+                                            Icon(
+                                                imageVector = Icons.Rounded.FolderCopy,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                text = stringResource(R.string.import_batch),
+                                                style = MaterialTheme.typography.labelLargeEmphasized,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
                                         }
                                     }
-                                    Spacer(Modifier.height(8.dp))
-                                    OutlinedButton(
+
+                                    FilledTonalButton(
                                         onClick = {
                                             scope.launch {
                                                 isLoading = true
@@ -279,7 +352,7 @@ fun PresetImportExportScreen(
                                                             ToastHelper.showToast(context, error)
                                                         } else {
                                                             ToastHelper.showToast(
-                                                                context, 
+                                                                context,
                                                                 "Preset imported from clipboard! (${preset.bandMode.displayName})"
                                                             )
                                                             viewModel.loadEqualizer()
@@ -287,7 +360,7 @@ fun PresetImportExportScreen(
                                                     },
                                                     onFailure = { e ->
                                                         ToastHelper.showToast(
-                                                            context, 
+                                                            context,
                                                             "Clipboard import failed: ${e.message}"
                                                         )
                                                     }
@@ -295,83 +368,141 @@ fun PresetImportExportScreen(
                                                 isLoading = false
                                             }
                                         },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = MaterialTheme.shapes.large,
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.primary
-                                        ),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.outlineVariant
-                                        )
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp),
+                                        shape = CircleShape
                                     ) {
-                                        Icon(Icons.Default.ContentPaste, contentDescription = null)
+                                        Icon(
+                                            imageVector = Icons.Rounded.ContentPaste,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                         Spacer(Modifier.width(8.dp))
-                                        Text(stringResource(R.string.import_from_clipboard))
+                                        Text(
+                                            text = stringResource(R.string.import_from_clipboard),
+                                            style = MaterialTheme.typography.labelLargeEmphasized
+                                        )
                                     }
                                 }
                             }
                         }
-                        item {
-                            Text(
-                                stringResource(R.string.your_custom_presets),
-                                style = MaterialTheme.typography.titleMediumEmphasized,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                        items(state.presets.filter { it.isUserDefined }) { preset ->
-                            PresetExportCard(
-                                preset = preset,
-                                onExportFile = {
-                                    selectedPreset = preset
-                                    exportLauncher.launch("${preset.name.replace(" ", "_")}_${preset.bandMode.value}band.ldp")
-                                },
-                                onCopyClipboard = {
-                                    scope.launch {
-                                        isLoading = true
-                                        exportManager.copyPresetToClipboard(preset).fold(
-                                            onSuccess = {
-                                                ToastHelper.showToast(
-                                                    context, 
-                                                    "Preset copied to clipboard!"
-                                                )
-                                            },
-                                            onFailure = { e ->
-                                                ToastHelper.showToast(
-                                                    context, 
-                                                    "Copy failed: ${e.message}"
-                                                )
-                                            }
+
+                        item(key = "section_header") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.your_custom_presets),
+                                        style = MaterialTheme.typography.titleLargeEmphasized,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    ) {
+                                        Text(
+                                            text = userPresets.size.toString(),
+                                            style = MaterialTheme.typography.labelMediumEmphasized,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
                                         )
-                                        isLoading = false
                                     }
-                                },
-                                onShare = {
-                                    scope.launch {
-                                        isLoading = true
-                                        exportManager.createShareIntent(preset).fold(
-                                            onSuccess = { intent ->
-                                                context.startActivity(intent)
-                                            },
-                                            onFailure = { e ->
-                                                ToastHelper.showToast(
-                                                    context, 
-                                                    "Share failed: ${e.message}"
-                                                )
-                                            }
-                                        )
-                                        isLoading = false
-                                    }
-                                },
-                                onDelete = {
-                                    presetToDelete = preset
-                                    showDeleteDialog = true
                                 }
-                            )
+                                if (userPresets.isNotEmpty()) {
+                                    TextButton(
+                                        onClick = { showBatchExport = true },
+                                        shape = CircleShape
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.export_all),
+                                            style = MaterialTheme.typography.labelLargeEmphasized
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        item {
-                            Spacer(Modifier.height(70.dp))
+
+                        if (userPresets.isEmpty()) {
+                            item(key = "empty_presets") {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.extraLarge,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                                ) {
+                                    ExpressiveEmptyState(
+                                        icon = Icons.Rounded.GraphicEq,
+                                        title = stringResource(R.string.import_export_empty_title),
+                                        subtitle = stringResource(R.string.import_export_empty_desc)
+                                    )
+                                }
+                            }
+                        } else {
+                            itemsIndexed(
+                                userPresets,
+                                key = { _, preset -> "${preset.name}_${preset.bandMode.value}" }
+                            ) { index, preset ->
+                                PresetExportCard(
+                                    preset = preset,
+                                    shape = groupedItemShape(index, userPresets.size),
+                                    onExportFile = {
+                                        selectedPreset = preset
+                                        exportLauncher.launch("${preset.name.replace(" ", "_")}_${preset.bandMode.value}band.ldp")
+                                    },
+                                    onCopyClipboard = {
+                                        scope.launch {
+                                            isLoading = true
+                                            exportManager.copyPresetToClipboard(preset).fold(
+                                                onSuccess = {
+                                                    ToastHelper.showToast(
+                                                        context,
+                                                        "Preset copied to clipboard!"
+                                                    )
+                                                },
+                                                onFailure = { e ->
+                                                    ToastHelper.showToast(
+                                                        context,
+                                                        "Copy failed: ${e.message}"
+                                                    )
+                                                }
+                                            )
+                                            isLoading = false
+                                        }
+                                    },
+                                    onShare = {
+                                        scope.launch {
+                                            isLoading = true
+                                            exportManager.createShareIntent(preset).fold(
+                                                onSuccess = { intent ->
+                                                    context.startActivity(intent)
+                                                },
+                                                onFailure = { e ->
+                                                    ToastHelper.showToast(
+                                                        context,
+                                                        "Share failed: ${e.message}"
+                                                    )
+                                                }
+                                            )
+                                            isLoading = false
+                                        }
+                                    },
+                                    onDelete = {
+                                        presetToDelete = preset
+                                        showDeleteDialog = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -380,30 +511,36 @@ fun PresetImportExportScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        ExpressiveLoadingState(message = stringResource(R.string.loading))
                     }
                 }
             }
+
             if (isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues),
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.28f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
                         shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        tonalElevation = 6.dp
                     ) {
                         Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.height(16.dp))
+                            LoadingIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
                             Text(
-                                stringResource(R.string.processing),
+                                text = stringResource(R.string.processing),
+                                style = MaterialTheme.typography.titleSmallEmphasized,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -412,22 +549,21 @@ fun PresetImportExportScreen(
             }
         }
     }
-    
+
     if (showBatchExport) {
-        val state = uiState as? EqualizerUiState.Success
-        val presetCount = state?.presets?.count { it.isUserDefined } ?: 0
-        
+        val presetCount = userPresets.size
+
         AlertDialog(
             onDismissRequest = { showBatchExport = false },
             icon = {
                 Surface(
-                    modifier = Modifier.size(56.dp),
-                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier.size(60.dp),
+                    shape = MaterialShapes.Cookie9Sided.toShape(),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Default.FileDownload,
+                            imageVector = Icons.Rounded.FileDownload,
                             contentDescription = null,
                             modifier = Modifier.size(28.dp),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -437,34 +573,41 @@ fun PresetImportExportScreen(
             },
             title = {
                 Text(
-                    stringResource(R.string.batch_export),
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = stringResource(R.string.batch_export),
+                    style = MaterialTheme.typography.headlineSmallEmphasized,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
                 )
             },
             text = {
                 Text(
-                    stringResource(R.string.batch_export_description, presetCount),
+                    text = stringResource(R.string.batch_export_description, presetCount),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
+                        showBatchExport = false
                         batchExportLauncher.launch("dolby_presets_backup.ldp")
                     },
-                    shape = MaterialTheme.shapes.large,
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text(stringResource(R.string.export_all))
+                    Text(
+                        text = stringResource(R.string.export_all),
+                        style = MaterialTheme.typography.labelLargeEmphasized
+                    )
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showBatchExport = false },
-                    shape = MaterialTheme.shapes.large,
+                    shape = CircleShape,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -479,16 +622,18 @@ fun PresetImportExportScreen(
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-    
+
     if (showDeleteDialog && presetToDelete != null) {
         ModernConfirmDialog(
-            title = "Delete Preset",
+            title = stringResource(R.string.dolby_geq_delete_preset),
             message = "Are you sure you want to delete '${presetToDelete!!.name}'? This will remove it from your preset list and cannot be undone.",
-            icon = Icons.Default.Delete,
+            icon = Icons.Rounded.Delete,
+            isDestructive = true,
             onConfirm = {
                 scope.launch {
+                    val name = presetToDelete!!.name
                     viewModel.deletePreset(presetToDelete!!)
-                    ToastHelper.showToast(context, "Preset '${presetToDelete!!.name}' deleted")
+                    ToastHelper.showToast(context, "Preset '$name' deleted")
                     viewModel.loadEqualizer()
                     showDeleteDialog = false
                     presetToDelete = null
@@ -505,19 +650,21 @@ fun PresetImportExportScreen(
 @Composable
 private fun PresetExportCard(
     preset: EqualizerPreset,
+    shape: Shape,
     onExportFile: () -> Unit,
     onCopyClipboard: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -525,46 +672,85 @@ private fun PresetExportCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        preset.name,
+                        text = preset.name,
                         style = MaterialTheme.typography.titleMediumEmphasized,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "${preset.bandMode.displayName} • ${preset.bandGains.size} bands",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "${preset.bandMode.displayName} · ${stringResource(R.string.dolby_eq_bands_count, preset.bandGains.size)}",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = onExportFile) {
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilledTonalIconButton(
+                        onClick = onExportFile,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    ) {
                         Icon(
-                            Icons.Default.FileDownload, 
-                            contentDescription = "Export to file",
-                            tint = MaterialTheme.colorScheme.primary
+                            imageVector = Icons.Rounded.FileDownload,
+                            contentDescription = stringResource(R.string.preset_export_single),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = onCopyClipboard) {
+                    FilledTonalIconButton(
+                        onClick = onCopyClipboard,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
                         Icon(
-                            Icons.Default.ContentCopy, 
-                            contentDescription = "Copy to clipboard",
-                            tint = MaterialTheme.colorScheme.secondary
+                            imageVector = Icons.Rounded.ContentCopy,
+                            contentDescription = stringResource(R.string.preset_copy_clipboard),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = onShare) {
+                    FilledTonalIconButton(
+                        onClick = onShare,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    ) {
                         Icon(
-                            Icons.Default.Share, 
-                            contentDescription = "Share",
-                            tint = MaterialTheme.colorScheme.tertiary
+                            imageVector = Icons.Rounded.Share,
+                            contentDescription = stringResource(R.string.preset_share),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = onDelete) {
+                    FilledTonalIconButton(
+                        onClick = onDelete,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
                         Icon(
-                            Icons.Default.Delete, 
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = stringResource(R.string.dolby_geq_delete_preset),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
+            }
+
+            if (preset.bandGains.size > 1) {
+                CompactFrequencyResponseCurve(
+                    bandGains = preset.bandGains,
+                    showGrid = true,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                )
             }
         }
     }

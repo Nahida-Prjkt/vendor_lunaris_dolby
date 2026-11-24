@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Lunaris AOSP
+ * Copyright (C) 2024-2026 Lunaris AOSP
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,51 +7,150 @@
 
 package org.lunaris.dolby.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.ImportExport
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SearchOff
+import androidx.compose.material.icons.rounded.ShowChart
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.toShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.lunaris.dolby.R
-import org.lunaris.dolby.data.autoeq.*
-import org.lunaris.dolby.ui.components.*
+import org.lunaris.dolby.domain.models.BandGain
+import org.lunaris.dolby.domain.models.BandMode
+import org.lunaris.dolby.domain.models.EqualizerPreset
+import org.lunaris.dolby.domain.models.EqualizerUiState
+import org.lunaris.dolby.ui.components.CompactFrequencyResponseCurve
+import org.lunaris.dolby.ui.components.DolbyPageHeading
+import org.lunaris.dolby.ui.components.DolbyTopAppBar
+import org.lunaris.dolby.ui.components.ExpressiveEmptyState
+import org.lunaris.dolby.ui.components.ExpressiveErrorState
+import org.lunaris.dolby.ui.components.ExpressiveLoadingState
+import org.lunaris.dolby.ui.components.InteractiveFrequencyResponseCurve
+import org.lunaris.dolby.ui.components.ModernConfirmDialog
+import org.lunaris.dolby.ui.components.ModernSettingsCard
+import org.lunaris.dolby.ui.components.expressivePress
+import org.lunaris.dolby.ui.components.groupedItemShape
 import org.lunaris.dolby.ui.viewmodel.EqualizerViewModel
-import org.lunaris.dolby.domain.models.*
-import org.lunaris.dolby.utils.*
+import org.lunaris.dolby.utils.HapticFeedbackHelper
+import org.lunaris.dolby.utils.rememberHapticFeedback
+import kotlin.math.abs
 
 enum class EqualizerViewMode {
     CURVE,
@@ -67,7 +166,8 @@ fun ModernEqualizerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    val showTitle by remember { derivedStateOf { scrollState.value > 0 } }
+    val showTitle by remember { derivedStateOf { scrollState.value > 72 } }
+    val isScrolled by remember { derivedStateOf { scrollState.value > 8 } }
     var showActions by remember { mutableStateOf(false) }
     var showAutoEqDialog by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
@@ -80,29 +180,61 @@ fun ModernEqualizerScreen(
             DolbyTopAppBar(
                 title = stringResource(R.string.dolby_preset),
                 showTitle = showTitle || uiState !is EqualizerUiState.Success,
+                scrolled = isScrolled,
                 actions = {
-                    IconButton(onClick = { showSaveDialog = true }) {
-                        Icon(Icons.Default.Save, stringResource(R.string.dolby_save_preset))
+                    FilledTonalIconButton(
+                        onClick = { showSaveDialog = true },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Save,
+                            contentDescription = stringResource(R.string.dolby_save_preset)
+                        )
                     }
-                    IconButton(onClick = { showAutoEqDialog = true }) {
-                        Icon(Icons.Default.Headphones, stringResource(R.string.dolby_autoeq_title))
+                    FilledTonalIconButton(
+                        onClick = { showAutoEqDialog = true },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Headphones,
+                            contentDescription = stringResource(R.string.dolby_autoeq_title)
+                        )
                     }
-                    Box {
-                        IconButton(onClick = { showActions = true }) {
-                            Icon(Icons.Default.MoreVert, stringResource(R.string.dolby_more_options))
+                    Box(modifier = Modifier.padding(end = 8.dp)) {
+                        FilledTonalIconButton(
+                            onClick = { showActions = true },
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.MoreVert,
+                                contentDescription = stringResource(R.string.dolby_more_options)
+                            )
                         }
-                        DropdownMenu(expanded = showActions, onDismissRequest = { showActions = false }) {
+                        DropdownMenu(
+                            expanded = showActions,
+                            onDismissRequest = { showActions = false },
+                            shape = MaterialTheme.shapes.large
+                        ) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.preset_import_export)) },
-                                leadingIcon = { Icon(Icons.Default.ImportExport, null) },
+                                leadingIcon = { Icon(Icons.Rounded.ImportExport, null) },
                                 onClick = {
                                     showActions = false
-                                    navController.navigate("import_export")
+                                    navController.navigate(Screen.ImportExport.route)
                                 },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.dolby_geq_reset_gains)) },
-                                leadingIcon = { Icon(Icons.Default.RestartAlt, null) },
+                                leadingIcon = { Icon(Icons.Rounded.RestartAlt, null) },
                                 onClick = {
                                     showActions = false
                                     showResetDialog = true
@@ -110,8 +242,19 @@ fun ModernEqualizerScreen(
                             )
                             if ((uiState as? EqualizerUiState.Success)?.currentPreset?.isUserDefined == true) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.dolby_geq_delete_preset)) },
-                                    leadingIcon = { Icon(Icons.Default.Delete, null) },
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.dolby_geq_delete_preset),
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
                                     onClick = {
                                         showActions = false
                                         showDeleteDialog = true
@@ -126,54 +269,42 @@ fun ModernEqualizerScreen(
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-        when (val state = uiState) {
-            is EqualizerUiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
-            }
-            is EqualizerUiState.Success -> {
-                ModernEqualizerContent(
-                    state = state,
-                    scrollState = scrollState,
-                    viewModel = viewModel,
-                    viewMode = viewMode,
-                    onViewModeChange = { viewMode = it },
-                    bottomPadding = bottomPadding,
-                    modifier = Modifier.padding(paddingValues)
-                )
-            }
-            is EqualizerUiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+            when (val state = uiState) {
+                is EqualizerUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = state.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
+                        ExpressiveLoadingState(message = stringResource(R.string.loading))
+                    }
+                }
+                is EqualizerUiState.Success -> {
+                    ModernEqualizerContent(
+                        state = state,
+                        scrollState = scrollState,
+                        viewModel = viewModel,
+                        viewMode = viewMode,
+                        onViewModeChange = { viewMode = it },
+                        bottomPadding = bottomPadding,
+                        modifier = Modifier.padding(paddingValues)
+                    )
+                }
+                is EqualizerUiState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ExpressiveErrorState(
+                            message = state.message,
+                            onRetry = { viewModel.loadEqualizer() }
                         )
                     }
                 }
             }
-        }
         }
     }
 
@@ -195,7 +326,8 @@ fun ModernEqualizerScreen(
         ModernConfirmDialog(
             title = stringResource(R.string.dolby_geq_delete_preset),
             message = stringResource(R.string.dolby_geq_delete_preset_prompt),
-            icon = Icons.Default.Delete,
+            icon = Icons.Rounded.Delete,
+            isDestructive = true,
             onConfirm = {
                 viewModel.deletePreset(state.currentPreset)
                 showDeleteDialog = false
@@ -208,7 +340,8 @@ fun ModernEqualizerScreen(
         ModernConfirmDialog(
             title = stringResource(R.string.dolby_geq_reset_gains),
             message = stringResource(R.string.dolby_geq_reset_gains_prompt),
-            icon = Icons.Default.RestartAlt,
+            icon = Icons.Rounded.RestartAlt,
+            isDestructive = true,
             onConfirm = {
                 viewModel.resetGains()
                 showResetDialog = false
@@ -240,24 +373,24 @@ private fun ModernEqualizerContent(
     val isBandModeCompatible = state.currentPreset.bandMode == state.bandMode
     val canEdit = isBandModeCompatible || isFlatPreset
     val isActive = canEdit && !isFlatPreset
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 12.dp + bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 16.dp + bottomPadding),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         DolbyPageHeading(
             title = stringResource(R.string.dolby_preset),
             subtitle = stringResource(R.string.dolby_equalizer_summary),
+            badgeText = "${state.currentPreset.name} · ${state.bandMode.displayName}",
+            badgeIcon = Icons.Rounded.GraphicEq,
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+
+        ModernSettingsCard(
+            title = stringResource(R.string.dolby_geq_preset),
+            icon = Icons.Rounded.LibraryMusic,
         ) {
             ModernPresetSelector(
                 presets = state.presets,
@@ -265,94 +398,97 @@ private fun ModernEqualizerContent(
                 onPresetSelected = { viewModel.setPreset(it) }
             )
         }
-        
-        BandModeSelector(
-            currentMode = state.bandMode,
-            onModeChange = { viewModel.setBandMode(it) }
-        )
-        
-        if (!isBandModeCompatible && !isFlatPreset) {
+
+        AnimatedVisibility(
+            visible = !isBandModeCompatible && !isFlatPreset,
+            enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()),
+            exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec())
+        ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer
                 )
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Column {
-                        Text(
-                            text = stringResource(R.string.band_mode_mismatch),
-                            style = MaterialTheme.typography.titleSmallEmphasized,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.WarningAmber,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.band_mode_mismatch),
+                                style = MaterialTheme.typography.titleMediumEmphasized,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "This ${state.currentPreset.bandMode.displayName} preset cannot be edited in ${state.bandMode.displayName} mode.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = { viewModel.setBandMode(state.currentPreset.bandMode) },
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.SwapHoriz,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "This ${state.currentPreset.bandMode.displayName} preset cannot be edited in ${state.bandMode.displayName} mode. " +
-                                  "Switch to ${state.currentPreset.bandMode.displayName} or select a compatible preset.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            text = stringResource(
+                                R.string.dolby_eq_switch_to_mode,
+                                state.currentPreset.bandMode.displayName
+                            ),
+                            style = MaterialTheme.typography.labelLargeEmphasized
                         )
                     }
                 }
             }
         }
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                EqualizerSectionHeader(
-                    icon = Icons.Default.Visibility,
-                    title = "Equalizer View",
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ViewModeTile(
-                        title = "Curve",
-                        icon = Icons.Default.ShowChart,
-                        isSelected = viewMode == EqualizerViewMode.CURVE,
-                        onClick = { onViewModeChange(EqualizerViewMode.CURVE) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    ViewModeTile(
-                        title = "Sliders",
-                        icon = Icons.Default.Tune,
-                        isSelected = viewMode == EqualizerViewMode.SLIDERS,
-                        onClick = { onViewModeChange(EqualizerViewMode.SLIDERS) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
+
+        EqualizerViewModeSwitcher(
+            viewMode = viewMode,
+            onViewModeChange = onViewModeChange
+        )
 
         val viewTransitionSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
         AnimatedContent(
             targetState = viewMode,
             transitionSpec = {
                 fadeIn(animationSpec = viewTransitionSpec) togetherWith
-                fadeOut(animationSpec = viewTransitionSpec)
+                    fadeOut(animationSpec = viewTransitionSpec)
             },
             label = "equalizer_view_transition"
         ) { mode ->
@@ -375,6 +511,11 @@ private fun ModernEqualizerContent(
             }
         }
 
+        BandModeSelector(
+            currentMode = state.bandMode,
+            onModeChange = { viewModel.setBandMode(it) }
+        )
+
         BandTunerCard(
             bandGains = state.bandGains,
             bandMode = state.bandMode,
@@ -385,7 +526,107 @@ private fun ModernEqualizerContent(
             },
             enabled = canEdit
         )
+    }
+}
 
+@Composable
+private fun EqualizerViewModeSwitcher(
+    viewMode: EqualizerViewMode,
+    onViewModeChange: (EqualizerViewMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptic = rememberHapticFeedback()
+    val scope = rememberCoroutineScope()
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(5.dp)
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            ViewModePill(
+                title = stringResource(R.string.dolby_eq_view_curve),
+                icon = Icons.Rounded.ShowChart,
+                isSelected = viewMode == EqualizerViewMode.CURVE,
+                onClick = {
+                    if (viewMode != EqualizerViewMode.CURVE) {
+                        scope.launch { haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK) }
+                        onViewModeChange(EqualizerViewMode.CURVE)
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            )
+            ViewModePill(
+                title = stringResource(R.string.dolby_eq_view_sliders),
+                icon = Icons.Rounded.Tune,
+                isSelected = viewMode == EqualizerViewMode.SLIDERS,
+                onClick = {
+                    if (viewMode != EqualizerViewMode.SLIDERS) {
+                        scope.launch { haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK) }
+                        onViewModeChange(EqualizerViewMode.SLIDERS)
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ViewModePill(
+    title: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val bgColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "view_pill_bg"
+    )
+    val fgColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "view_pill_fg"
+    )
+
+    Surface(
+        selected = isSelected,
+        onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = modifier
+            .height(48.dp)
+            .expressivePress(interactionSource, scaleDown = 0.96f)
+            .semantics { role = Role.Tab },
+        shape = CircleShape,
+        color = bgColor,
+        contentColor = fgColor
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = title,
+                style = if (isSelected) MaterialTheme.typography.titleSmallEmphasized
+                else MaterialTheme.typography.titleSmall
+            )
+        }
     }
 }
 
@@ -399,7 +640,7 @@ private fun CurveViewContent(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(380.dp),
+            .height(360.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -416,35 +657,51 @@ private fun CurveViewContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (canEdit) "Interactive Frequency Response" 
-                          else "Frequency Response (Read-only)",
+                    text = if (canEdit) {
+                        stringResource(R.string.frequency_response)
+                    } else {
+                        stringResource(R.string.dolby_eq_readonly_title)
+                    },
                     style = MaterialTheme.typography.titleMediumEmphasized,
-                    color = if (canEdit) MaterialTheme.colorScheme.onSurface
-                          else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (canEdit) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 )
                 Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = if (canEdit) MaterialTheme.colorScheme.secondaryContainer
-                          else MaterialTheme.colorScheme.errorContainer
+                    shape = CircleShape,
+                    color = if (canEdit) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.errorContainer
+                    }
                 ) {
                     Text(
-                        text = "${state.bandMode.bandCount} bands",
-                        style = MaterialTheme.typography.labelMediumEmphasized,
-                        color = if (canEdit) MaterialTheme.colorScheme.onSecondaryContainer
-                              else MaterialTheme.colorScheme.onErrorContainer,
+                        text = getFrequencyRange(state.bandGains),
+                        style = MaterialTheme.typography.labelSmallEmphasized,
+                        color = if (canEdit) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        },
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
             Text(
-                text = if (canEdit) 
-                    "Drag the control points to adjust gain (±15 dB) • ${getFrequencyRange(state.bandGains)}"
-                else
-                    "Read-only view • Band mode mismatch",
+                text = if (canEdit) {
+                    stringResource(R.string.dolby_eq_drag_hint)
+                } else {
+                    stringResource(R.string.dolby_eq_readonly_hint)
+                },
                 style = MaterialTheme.typography.bodySmall,
-                color = if (canEdit) MaterialTheme.colorScheme.onSurfaceVariant
-                      else MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                color = if (canEdit) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
             )
             InteractiveFrequencyResponseCurve(
                 bandGains = state.bandGains,
@@ -473,7 +730,7 @@ private fun SlidersViewContent(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp),
+                .height(172.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -491,20 +748,19 @@ private fun SlidersViewContent(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Surface(
-                        shape = MaterialTheme.shapes.small,
+                        shape = CircleShape,
                         color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Text(
                             text = getFrequencyRange(state.bandGains),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.labelSmallEmphasized,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                FrequencyResponseCurve(
+                CompactFrequencyResponseCurve(
                     bandGains = state.bandGains,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -516,7 +772,7 @@ private fun SlidersViewContent(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(380.dp),
+                .height(376.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -533,25 +789,27 @@ private fun SlidersViewContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (canEdit) stringResource(R.string.dolby_geq_slider_label_gain)
-                              else "${stringResource(R.string.dolby_geq_slider_label_gain)} (Read-only)",
+                        text = stringResource(R.string.dolby_geq_slider_label_gain),
                         style = MaterialTheme.typography.titleMediumEmphasized,
-                        color = if (canEdit) MaterialTheme.colorScheme.onSurface
-                              else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (canEdit) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
-                    
+
                     if (!canEdit) {
                         Surface(
-                            shape = MaterialTheme.shapes.small,
+                            shape = CircleShape,
                             color = MaterialTheme.colorScheme.errorContainer
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Lock,
+                                    imageVector = Icons.Rounded.Lock,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp),
                                     tint = MaterialTheme.colorScheme.onErrorContainer
@@ -565,11 +823,11 @@ private fun SlidersViewContent(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     itemsIndexed(state.bandGains) { index, bandGain ->
@@ -591,33 +849,6 @@ private fun SlidersViewContent(
 }
 
 @Composable
-private fun EqualizerSectionHeader(
-    icon: ImageVector,
-    title: String,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMediumEmphasized,
-            color = if (enabled) MaterialTheme.colorScheme.onSurface
-                   else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
 private fun BandTunerCard(
     bandGains: List<BandGain>,
     bandMode: BandMode,
@@ -635,138 +866,167 @@ private fun BandTunerCard(
 
     var sliderValue by remember(index, band.gain) { mutableFloatStateOf(band.gain / 10f) }
     var lastHapticStep by remember(index) { mutableIntStateOf(band.gain) }
+    val isNonZero = abs(sliderValue) > 0.05f
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+    ModernSettingsCard(
+        title = stringResource(R.string.band_tuner),
+        subtitle = stringResource(R.string.band_tuner_desc),
+        icon = Icons.Rounded.GraphicEq,
+        modifier = modifier
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            EqualizerSectionHeader(
-                icon = Icons.Default.GraphicEq,
-                title = stringResource(R.string.band_tuner),
-                enabled = enabled,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-
-            Text(
-                text = stringResource(R.string.band_tuner_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            Row(
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
             ) {
-                BandStepButton(
-                    icon = Icons.Default.ChevronLeft,
-                    contentDescription = stringResource(R.string.band_tuner_previous),
-                    enabled = enabled && index > 0,
-                    onClick = { selectedIndex = index - 1 }
-                )
-
-                Text(
-                    text = stringResource(
-                        R.string.band_tuner_position,
-                        index + 1,
-                        bandGains.size
-                    ),
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurface
-                           else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
-                )
-
-                BandStepButton(
-                    icon = Icons.Default.ChevronRight,
-                    contentDescription = stringResource(R.string.band_tuner_next),
-                    enabled = enabled && index < bandGains.lastIndex,
-                    onClick = { selectedIndex = index + 1 }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(
-                        R.string.band_tuner_label,
-                        index + 1,
-                        formatFrequency(band.frequency)
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurface
-                           else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = if (enabled) MaterialTheme.colorScheme.primaryContainer
-                           else MaterialTheme.colorScheme.surfaceContainerHighest
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = formatGain(sliderValue),
-                        style = MaterialTheme.typography.labelLargeEmphasized,
-                        color = if (enabled) MaterialTheme.colorScheme.onPrimaryContainer
-                               else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    BandStepButton(
+                        icon = Icons.Rounded.ChevronLeft,
+                        contentDescription = stringResource(R.string.band_tuner_previous),
+                        enabled = enabled && index > 0,
+                        onClick = { selectedIndex = index - 1 }
+                    )
+
+                    val tunerMotionScheme = MaterialTheme.motionScheme
+                    AnimatedContent(
+                        targetState = index,
+                        transitionSpec = {
+                            val dir = if (targetState > initialState) 1 else -1
+                            (slideInHorizontally(tunerMotionScheme.fastSpatialSpec()) { dir * it / 3 } +
+                                fadeIn(tunerMotionScheme.fastEffectsSpec()))
+                                .togetherWith(
+                                    slideOutHorizontally(tunerMotionScheme.fastSpatialSpec()) { -dir * it / 3 } +
+                                        fadeOut(tunerMotionScheme.fastEffectsSpec())
+                                )
+                        },
+                        label = "band_tuner_step",
+                        modifier = Modifier.weight(1f)
+                    ) { targetIdx ->
+                        val targetBand = bandGains.getOrElse(targetIdx) { band }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(
+                                    R.string.band_tuner_label,
+                                    targetIdx + 1,
+                                    formatFrequency(targetBand.frequency)
+                                ),
+                                style = MaterialTheme.typography.titleMediumEmphasized,
+                                color = if (enabled) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.band_tuner_position,
+                                    targetIdx + 1,
+                                    bandGains.size
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    BandStepButton(
+                        icon = Icons.Rounded.ChevronRight,
+                        contentDescription = stringResource(R.string.band_tuner_next),
+                        enabled = enabled && index < bandGains.lastIndex,
+                        onClick = { selectedIndex = index + 1 }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Slider(
-                value = sliderValue,
-                onValueChange = { newValue ->
-                    val step = (newValue * 10).toInt()
-                    if (step != lastHapticStep) {
-                        scope.launch {
-                            haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.TEXTURE_TICK)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.dolby_geq_slider_label_gain),
+                        style = MaterialTheme.typography.titleSmallEmphasized,
+                        color = if (enabled) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         }
-                        lastHapticStep = step
+                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = when {
+                            !enabled -> MaterialTheme.colorScheme.surfaceContainerHighest
+                            isNonZero -> MaterialTheme.colorScheme.primaryContainer
+                            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+                        }
+                    ) {
+                        Text(
+                            text = formatGain(sliderValue),
+                            style = MaterialTheme.typography.labelLargeEmphasized,
+                            color = when {
+                                !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                                isNonZero -> MaterialTheme.colorScheme.onPrimaryContainer
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
                     }
-                    sliderValue = newValue
-                },
-                onValueChangeFinished = {
-                    onGainChange(index, (sliderValue * 10).toInt())
-                },
-                enabled = enabled,
-                valueRange = -15f..15f,
-                steps = 299,
-                modifier = Modifier.fillMaxWidth(),
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    activeTickColor = MaterialTheme.colorScheme.onPrimary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.secondaryContainer,
-                    inactiveTickColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    disabledThumbColor = MaterialTheme.colorScheme.outline,
-                    disabledActiveTrackColor = MaterialTheme.colorScheme.outline,
-                    disabledInactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                )
-            )
+                }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Slider(
+                    value = sliderValue,
+                    onValueChange = { newValue ->
+                        val step = (newValue * 10).toInt()
+                        if (step != lastHapticStep) {
+                            scope.launch {
+                                haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.TEXTURE_TICK)
+                            }
+                            lastHapticStep = step
+                        }
+                        sliderValue = newValue
+                    },
+                    onValueChangeFinished = {
+                        onGainChange(index, (sliderValue * 10).toInt())
+                    },
+                    enabled = enabled,
+                    valueRange = -15f..15f,
+                    steps = 299,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        activeTickColor = MaterialTheme.colorScheme.onPrimary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        inactiveTickColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledThumbColor = MaterialTheme.colorScheme.outline,
+                        disabledActiveTrackColor = MaterialTheme.colorScheme.outline,
+                        disabledInactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                    )
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 BandAdjustButton(
                     label = stringResource(R.string.band_tuner_decrement),
                     enabled = enabled && band.gain > -150,
+                    shape = RoundedCornerShape(
+                        topStart = 24.dp,
+                        bottomStart = 24.dp,
+                        topEnd = 10.dp,
+                        bottomEnd = 10.dp
+                    ),
                     onClick = {
                         val newGain = (band.gain - 1).coerceAtLeast(-150)
                         sliderValue = newGain / 10f
@@ -777,6 +1037,7 @@ private fun BandTunerCard(
                 BandAdjustButton(
                     label = stringResource(R.string.band_tuner_reset),
                     enabled = enabled && band.gain != 0,
+                    shape = RoundedCornerShape(10.dp),
                     onClick = {
                         sliderValue = 0f
                         onGainChange(index, 0)
@@ -786,6 +1047,12 @@ private fun BandTunerCard(
                 BandAdjustButton(
                     label = stringResource(R.string.band_tuner_increment),
                     enabled = enabled && band.gain < 150,
+                    shape = RoundedCornerShape(
+                        topStart = 10.dp,
+                        bottomStart = 10.dp,
+                        topEnd = 24.dp,
+                        bottomEnd = 24.dp
+                    ),
                     onClick = {
                         val newGain = (band.gain + 1).coerceAtMost(150)
                         sliderValue = newGain / 10f
@@ -807,6 +1074,7 @@ private fun BandStepButton(
 ) {
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
+    val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
         onClick = {
@@ -816,20 +1084,27 @@ private fun BandStepButton(
             onClick()
         },
         enabled = enabled,
+        interactionSource = interactionSource,
         modifier = Modifier
-            .size(width = 64.dp, height = 40.dp)
-            .squishable(enabled = enabled, scaleDown = 0.9f),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = if (enabled) MaterialTheme.colorScheme.secondaryContainer
-               else MaterialTheme.colorScheme.surfaceContainerHighest
+            .size(width = 48.dp, height = 42.dp)
+            .expressivePress(interactionSource, enabled = enabled, scaleDown = 0.9f),
+        shape = CircleShape,
+        color = if (enabled) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)
+        }
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(20.dp),
-                tint = if (enabled) MaterialTheme.colorScheme.onSecondaryContainer
-                      else MaterialTheme.colorScheme.outline
+                modifier = Modifier.size(22.dp),
+                tint = if (enabled) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                }
             )
         }
     }
@@ -839,11 +1114,13 @@ private fun BandStepButton(
 private fun BandAdjustButton(
     label: String,
     enabled: Boolean,
+    shape: RoundedCornerShape,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
+    val interactionSource = remember { MutableInteractionSource() }
 
     Surface(
         onClick = {
@@ -853,20 +1130,26 @@ private fun BandAdjustButton(
             onClick()
         },
         enabled = enabled,
+        interactionSource = interactionSource,
         modifier = modifier
             .height(48.dp)
-            .squishable(enabled = enabled, scaleDown = 0.93f),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = if (enabled) MaterialTheme.colorScheme.secondaryContainer
-               else MaterialTheme.colorScheme.surfaceContainerHighest
+            .expressivePress(interactionSource, enabled = enabled, scaleDown = 0.94f),
+        shape = shape,
+        color = if (enabled) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.65f)
+        }
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = if (enabled) MaterialTheme.colorScheme.onSecondaryContainer
-                       else MaterialTheme.colorScheme.outline
+                style = MaterialTheme.typography.labelLargeEmphasized,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.outline
+                }
             )
         }
     }
@@ -882,89 +1165,8 @@ private fun formatGain(gain: Float): String {
 
 private fun getFrequencyRange(bandGains: List<BandGain>): String {
     if (bandGains.isEmpty()) return ""
-    return "${formatFrequency(bandGains.minOf { it.frequency })} - " +
+    return "${formatFrequency(bandGains.minOf { it.frequency })} – " +
         formatFrequency(bandGains.maxOf { it.frequency })
-}
-
-@Composable
-private fun ViewModeTile(
-    title: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val haptic = rememberHapticFeedback()
-    val scope = rememberCoroutineScope()
-    
-    Surface(
-        onClick = {
-            scope.launch {
-                haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
-            }
-            onClick()
-        },
-        modifier = modifier
-            .height(72.dp)
-            .squishable(enabled = true, scaleDown = 0.93f),
-        color = if (isSelected)
-            MaterialTheme.colorScheme.primaryContainer
-        else
-            MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = if (isSelected)
-            MaterialTheme.colorScheme.onPrimaryContainer
-        else
-            MaterialTheme.colorScheme.onSurface,
-        shape = if (isSelected)
-            MaterialTheme.shapes.extraLarge
-        else
-            MaterialTheme.shapes.large,
-        border = tileSelectionBorder(isSelected)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = if (isSelected)
-                    MaterialTheme.shapes.extraLarge
-                else
-                    MaterialTheme.shapes.medium,
-                color = if (isSelected)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (isSelected)
-                            MaterialTheme.colorScheme.onPrimary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Text(
-                text = title,
-                style = if (isSelected) MaterialTheme.typography.titleMediumEmphasized
-                    else MaterialTheme.typography.titleMedium,
-                color = if (isSelected)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
 }
 
 @Composable
@@ -975,45 +1177,36 @@ private fun BandModeSelector(
 ) {
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
-    
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+    val modes = BandMode.values()
+
+    ModernSettingsCard(
+        title = stringResource(R.string.band_configuration),
+        subtitle = stringResource(R.string.choose_equalizer_precision),
+        icon = Icons.Rounded.Tune,
+        modifier = modifier
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            EqualizerSectionHeader(
-                icon = Icons.Default.Tune,
-                title = stringResource(R.string.band_configuration),
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            
-            Text(
-                text = stringResource(R.string.choose_equalizer_precision),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                BandMode.values().forEach { mode ->
-                    BandModeTile(
-                        mode = mode,
-                        isSelected = currentMode == mode,
-                        onClick = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            modes.forEachIndexed { index, mode ->
+                BandModeTile(
+                    mode = mode,
+                    isSelected = currentMode == mode,
+                    isStart = index == 0,
+                    isEnd = index == modes.lastIndex,
+                    onClick = {
+                        if (currentMode != mode) {
                             scope.launch {
                                 haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
                             }
                             onModeChange(mode)
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -1023,77 +1216,98 @@ private fun BandModeSelector(
 private fun BandModeTile(
     mode: BandMode,
     isSelected: Boolean,
+    isStart: Boolean,
+    isEnd: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptic = rememberHapticFeedback()
-    val scope = rememberCoroutineScope()
-    
-    Surface(
-        onClick = {
-            scope.launch {
-                haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
-            }
-            onClick()
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val innerCorner by animateDpAsState(
+        targetValue = when {
+            pressed -> 10.dp
+            isSelected -> 24.dp
+            else -> 10.dp
         },
-        modifier = modifier
-            .height(80.dp)
-            .squishable(enabled = true, scaleDown = 0.93f),
-        color = if (isSelected)
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "band_mode_corner"
+    )
+    val startCorner = if (isStart || isSelected) 24.dp else innerCorner
+    val endCorner = if (isEnd || isSelected) 24.dp else innerCorner
+    val bgColor by animateColorAsState(
+        targetValue = if (isSelected) {
             MaterialTheme.colorScheme.primaryContainer
-        else
-            MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = if (isSelected)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "band_mode_bg"
+    )
+    val fgColor by animateColorAsState(
+        targetValue = if (isSelected) {
             MaterialTheme.colorScheme.onPrimaryContainer
-        else
-            MaterialTheme.colorScheme.onSurface,
-        shape = if (isSelected)
-            MaterialTheme.shapes.extraLarge
-        else
-            MaterialTheme.shapes.large,
-        border = tileSelectionBorder(isSelected)
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "band_mode_fg"
+    )
+
+    Surface(
+        selected = isSelected,
+        onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = modifier
+            .height(78.dp)
+            .expressivePress(interactionSource, scaleDown = 0.95f)
+            .semantics { role = Role.RadioButton },
+        color = bgColor,
+        contentColor = fgColor,
+        shape = RoundedCornerShape(
+            topStart = startCorner,
+            bottomStart = startCorner,
+            topEnd = endCorner,
+            bottomEnd = endCorner
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(horizontal = 8.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Surface(
                 modifier = Modifier.size(32.dp),
-                shape = if (isSelected)
-                    MaterialTheme.shapes.extraLarge
-                else
-                    MaterialTheme.shapes.small,
-                color = if (isSelected)
+                shape = CircleShape,
+                color = if (isSelected) {
                     MaterialTheme.colorScheme.primary
-                else
+                } else {
                     MaterialTheme.colorScheme.surfaceContainerHighest
+                }
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = mode.value,
                         style = MaterialTheme.typography.labelLargeEmphasized,
-                        color = if (isSelected)
+                        color = if (isSelected) {
                             MaterialTheme.colorScheme.onPrimary
-                        else
+                        } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 }
             }
-            
             Spacer(modifier = Modifier.height(6.dp))
-            
             Text(
                 text = mode.displayName,
-                style = if (isSelected) MaterialTheme.typography.labelSmallEmphasized
-                    else MaterialTheme.typography.labelSmall,
-                color = if (isSelected)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                style = if (isSelected) {
+                    MaterialTheme.typography.labelSmallEmphasized
+                } else {
+                    MaterialTheme.typography.labelSmall
+                },
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
         }
     }
@@ -1111,81 +1325,114 @@ fun ModernPresetSelector(
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
 
-    Column(modifier = modifier.padding(20.dp)) {
-        EqualizerSectionHeader(
-            icon = Icons.Default.LibraryMusic,
-            title = stringResource(R.string.dolby_geq_preset),
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = { 
+            onExpandedChange = {
                 scope.launch {
                     haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.TICK)
                 }
-                expanded = it 
+                expanded = it
             }
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor(),
-                shape = MaterialTheme.shapes.large,
+                shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         if (currentPreset.isUserDefined) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
                         }
                         Text(
                             text = currentPreset.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = MaterialTheme.typography.titleMediumEmphasized,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 }
             }
-            
+
             ExposedDropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onDismissRequest = { expanded = false },
+                shape = MaterialTheme.shapes.large
             ) {
                 presets.forEach { preset ->
+                    val isCurrent = preset.name == currentPreset.name
                     DropdownMenuItem(
-                        text = { 
+                        text = {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    preset.name,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                if (preset.isUserDefined) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = preset.name,
+                                        style = if (isCurrent) {
+                                            MaterialTheme.typography.bodyLargeEmphasized
+                                        } else {
+                                            MaterialTheme.typography.bodyLarge
+                                        },
+                                        color = if (isCurrent) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    if (preset.isUserDefined) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Person,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                if (isCurrent) {
                                     Icon(
-                                        imageVector = Icons.Default.Person,
+                                        imageVector = Icons.Rounded.Check,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(18.dp),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -1199,6 +1446,76 @@ fun ModernPresetSelector(
                             expanded = false
                         }
                     )
+                }
+            }
+        }
+
+        if (presets.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(presets, key = { "${it.name}_${it.isUserDefined}_${it.bandMode.value}" }) { preset ->
+                    val selected = preset.name == currentPreset.name
+                    val chipInteraction = remember { MutableInteractionSource() }
+                    val chipBg by animateColorAsState(
+                        targetValue = if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        },
+                        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                        label = "preset_chip_bg"
+                    )
+                    val chipFg by animateColorAsState(
+                        targetValue = if (selected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                        label = "preset_chip_fg"
+                    )
+
+                    Surface(
+                        selected = selected,
+                        onClick = {
+                            if (!selected) {
+                                scope.launch {
+                                    haptic.performHaptic(HapticFeedbackHelper.HapticIntensity.CLICK)
+                                }
+                                onPresetSelected(preset)
+                            }
+                        },
+                        interactionSource = chipInteraction,
+                        modifier = Modifier.expressivePress(chipInteraction, scaleDown = 0.94f),
+                        shape = CircleShape,
+                        color = chipBg,
+                        contentColor = chipFg
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (preset.isUserDefined) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            Text(
+                                text = preset.name,
+                                style = if (selected) {
+                                    MaterialTheme.typography.labelLargeEmphasized
+                                } else {
+                                    MaterialTheme.typography.labelLarge
+                                },
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1217,24 +1534,32 @@ fun ModernEqualizerBand(
     val haptic = rememberHapticFeedback()
     val scope = rememberCoroutineScope()
     var lastHapticValue by remember { mutableIntStateOf((gain / 10f).toInt()) }
+    val isNonZero = abs(sliderValue) > 0.05f
 
     Column(
         modifier = modifier
-            .width(64.dp)
+            .width(62.dp)
             .fillMaxHeight(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Surface(
-            shape = MaterialTheme.shapes.small,
-            color = if (enabled) MaterialTheme.colorScheme.primaryContainer
-                   else MaterialTheme.colorScheme.surfaceContainerHighest
+            shape = CircleShape,
+            color = when {
+                !enabled -> MaterialTheme.colorScheme.surfaceContainerHighest
+                isNonZero -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surfaceContainerHigh
+            }
         ) {
+            val sign = if (sliderValue > 0.05f) "+" else ""
             Text(
-                text = "%.1f".format(sliderValue),
-                style = MaterialTheme.typography.labelMediumEmphasized,
-                color = if (enabled) MaterialTheme.colorScheme.onPrimaryContainer
-                       else MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "$sign%.1f".format(sliderValue + 0f),
+                style = MaterialTheme.typography.labelSmallEmphasized,
+                color = when {
+                    !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                    isNonZero -> MaterialTheme.colorScheme.onPrimaryContainer
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
@@ -1281,11 +1606,11 @@ fun ModernEqualizerBand(
                 .width(48.dp),
             colors = SliderDefaults.colors(
                 thumbColor = if (enabled) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline,
+                else MaterialTheme.colorScheme.outline,
                 activeTrackColor = if (enabled) MaterialTheme.colorScheme.primary
-                                  else MaterialTheme.colorScheme.outline,
+                else MaterialTheme.colorScheme.outline,
                 inactiveTrackColor = if (enabled) MaterialTheme.colorScheme.secondaryContainer
-                                    else MaterialTheme.colorScheme.surfaceContainerHighest,
+                else MaterialTheme.colorScheme.surfaceContainerHighest,
                 disabledThumbColor = MaterialTheme.colorScheme.outline,
                 disabledActiveTrackColor = MaterialTheme.colorScheme.outline,
                 disabledInactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -1296,95 +1621,8 @@ fun ModernEqualizerBand(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
             color = if (enabled) MaterialTheme.colorScheme.onSurface
-                   else MaterialTheme.colorScheme.onSurfaceVariant
+            else MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun FrequencyResponseCurve(
-    bandGains: List<BandGain>,
-    modifier: Modifier = Modifier
-) {
-    val curveColor = MaterialTheme.colorScheme.primary
-    val plotContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-    val plotInkColor = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Canvas(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.large)
-            .background(plotContainerColor)
-    ) {
-        val width = size.width
-        val height = size.height
-        val centerY = height / 2
-
-        drawLine(
-            color = plotInkColor.copy(alpha = 0.5f),
-            start = Offset(0f, centerY),
-            end = Offset(width, centerY),
-            strokeWidth = 2f
-        )
-
-        for (i in 1..4) {
-            val y = (height / 5) * i
-            drawLine(
-                color = plotInkColor.copy(alpha = 0.18f),
-                start = Offset(0f, y),
-                end = Offset(width, y),
-                strokeWidth = 1f
-            )
-        }
-        
-        if (bandGains.isNotEmpty()) {
-            val path = Path()
-            val stepX = width / (bandGains.size - 1)
-            
-            bandGains.forEachIndexed { index, bandGain ->
-                val x = index * stepX
-                val normalizedGain = (bandGain.gain / 150f).coerceIn(-1f, 1f)
-                val y = centerY - (normalizedGain * centerY * 0.8f)
-                
-                if (index == 0) {
-                    path.moveTo(x, y)
-                } else {
-                    val prevX = (index - 1) * stepX
-                    val prevGain = bandGains[index - 1].gain
-                    val prevNormalizedGain = (prevGain / 150f).coerceIn(-1f, 1f)
-                    val prevY = centerY - (prevNormalizedGain * centerY * 0.8f)
-                    
-                    val cpX1 = prevX + stepX * 0.4f
-                    val cpY1 = prevY
-                    val cpX2 = x - stepX * 0.4f
-                    val cpY2 = y
-                    
-                    path.cubicTo(cpX1, cpY1, cpX2, cpY2, x, y)
-                }
-            }
-            
-            drawPath(
-                path = path,
-                color = curveColor,
-                style = Stroke(width = 4f)
-            )
-
-            val fillPath = Path().apply {
-                addPath(path)
-                lineTo(width, height)
-                lineTo(0f, height)
-                close()
-            }
-
-            drawPath(
-                path = fillPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        curveColor.copy(alpha = 0.28f),
-                        curveColor.copy(alpha = 0.04f)
-                    )
-                )
-            )
-        }
     }
 }
 
@@ -1400,13 +1638,13 @@ private fun SavePresetDialog(
         onDismissRequest = onDismiss,
         icon = {
             Surface(
-                modifier = Modifier.size(56.dp),
-                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.size(60.dp),
+                shape = MaterialShapes.Cookie9Sided.toShape(),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.Save,
+                        imageVector = Icons.Rounded.Save,
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -1416,24 +1654,25 @@ private fun SavePresetDialog(
         },
         title = {
             Text(
-                stringResource(R.string.dolby_geq_new_preset),
-                style = MaterialTheme.typography.titleLargeEmphasized,
-                color = MaterialTheme.colorScheme.onSurface
-            ) 
+                text = stringResource(R.string.dolby_geq_new_preset),
+                style = MaterialTheme.typography.headlineSmallEmphasized,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
         },
         text = {
             Column {
                 OutlinedTextField(
                     value = presetName,
-                    onValueChange = { 
+                    onValueChange = {
                         presetName = it
                         errorMessage = null
                     },
-                    label = { 
+                    label = {
                         Text(
-                            stringResource(R.string.dolby_geq_preset_name),
+                            text = stringResource(R.string.dolby_geq_preset_name),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ) 
+                        )
                     },
                     isError = errorMessage != null,
                     singleLine = true,
@@ -1448,9 +1687,9 @@ private fun SavePresetDialog(
                         focusedLabelColor = MaterialTheme.colorScheme.primary,
                         unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         cursorColor = MaterialTheme.colorScheme.primary,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        errorContainerColor = MaterialTheme.colorScheme.errorContainer
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
                     )
                 )
                 if (errorMessage != null) {
@@ -1471,19 +1710,23 @@ private fun SavePresetDialog(
                         errorMessage = error
                     }
                 },
-                shape = MaterialTheme.shapes.large,
+                enabled = presetName.isNotBlank(),
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text(stringResource(android.R.string.ok))
+                Text(
+                    text = stringResource(android.R.string.ok),
+                    style = MaterialTheme.typography.labelLargeEmphasized
+                )
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                shape = MaterialTheme.shapes.large,
+                shape = CircleShape,
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1517,34 +1760,102 @@ private fun AutoEqSelectionDialog(
     val activeAutoEqId by viewModel.currentAppliedAutoEqId.collectAsState()
     val listState = rememberLazyListState()
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(id = R.string.dolby_autoeq_title),
-                style = MaterialTheme.typography.titleLargeEmphasized,
-                color = MaterialTheme.colorScheme.onSurface
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.93f)
+                .heightIn(min = 380.dp, max = 640.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             )
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)) {
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.size(46.dp),
+                        shape = MaterialShapes.Cookie9Sided.toShape(),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Headphones,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.dolby_autoeq_title),
+                            style = MaterialTheme.typography.titleLargeEmphasized,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (!isLoading && filteredList.isNotEmpty()) {
+                            Text(
+                                text = stringResource(R.string.dolby_autoeq_results_count, filteredList.size),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    FilledTonalIconButton(
+                        onClick = onDismiss,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.dolby_close)
+                        )
+                    }
+                }
 
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh
                 ) {
                     TextField(
                         value = searchQuery,
                         onValueChange = { viewModel.updateSearchQuery(it) },
-                        placeholder = { Text(stringResource(R.string.dolby_autoeq_search_hint)) },
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.dolby_autoeq_search_hint),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Search,
+                                contentDescription = stringResource(R.string.dolby_autoeq_search),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.dolby_autoeq_clear))
+                                    Icon(
+                                        imageVector = Icons.Rounded.Clear,
+                                        contentDescription = stringResource(R.string.dolby_autoeq_clear),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
-                            } else {
-                                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.dolby_autoeq_search))
                             }
                         },
                         singleLine = true,
@@ -1559,102 +1870,169 @@ private fun AutoEqSelectionDialog(
                     )
                 }
 
-                    if (searchQuery.isEmpty() && !activeAutoEqId.isNullOrEmpty()) {
+                if (searchQuery.isEmpty() && activeAutoEqId.isNotEmpty()) {
                     val activeEntry = filteredList.find { it.id == activeAutoEqId }
                     if (activeEntry != null) {
-                        Text(
-                            text = stringResource(R.string.dolby_autoeq_currently_applied),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-                        )
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                            shape = MaterialTheme.shapes.large,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ) {
-                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = activeEntry.name, style = MaterialTheme.typography.bodyMediumEmphasized, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                    Text(text = "${activeEntry.source} • ${activeEntry.measurementRig}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                }
-                                Icon(Icons.Default.CheckCircle, contentDescription = stringResource(R.string.dolby_autoeq_active), tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    }
-                }
-
-                if (isLoading && filteredList.isEmpty()) {
-                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { 
-                        CircularProgressIndicator() 
-                    }
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(filteredList, key = { it.id }) { entry ->
-                            val isSelected = entry.id == activeAutoEqId
-
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = stringResource(R.string.dolby_autoeq_currently_applied),
+                                style = MaterialTheme.typography.labelMediumEmphasized,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
                             Surface(
-                                onClick = {
-                                    viewModel.applyAutoEqProfileNetwork(context, entry)
-                                    onDismiss()
-                                },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = if (isSelected) MaterialTheme.shapes.extraLarge else MaterialTheme.shapes.large,
-                                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                                shape = MaterialTheme.shapes.large,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = entry.name,
-                                            style = MaterialTheme.typography.bodyMediumEmphasized,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                                            text = activeEntry.name,
+                                            style = MaterialTheme.typography.titleSmallEmphasized,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                         Text(
-                                            text = "${entry.source} • ${entry.measurementRig}",
+                                            text = "${activeEntry.source} · ${activeEntry.measurementRig}",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                                         )
                                     }
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = stringResource(R.string.dolby_autoeq_selected),
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.size(20.dp)
-                                        )
+                                    Icon(
+                                        imageVector = Icons.Rounded.CheckCircle,
+                                        contentDescription = stringResource(R.string.dolby_autoeq_active),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    }
+                }
+
+                when {
+                    isLoading && filteredList.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ExpressiveLoadingState(message = stringResource(R.string.loading))
+                        }
+                    }
+                    filteredList.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ExpressiveEmptyState(
+                                icon = Icons.Rounded.SearchOff,
+                                title = stringResource(R.string.dolby_autoeq_no_results)
+                            )
+                        }
+                    }
+                    else -> {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(3.dp),
+                            contentPadding = PaddingValues(bottom = 4.dp)
+                        ) {
+                            itemsIndexed(filteredList, key = { _, it -> it.id }) { idx, entry ->
+                                val isSelected = entry.id == activeAutoEqId
+                                val itemInteraction = remember { MutableInteractionSource() }
+
+                                Surface(
+                                    onClick = {
+                                        viewModel.applyAutoEqProfileNetwork(context, entry)
+                                        onDismiss()
+                                    },
+                                    interactionSource = itemInteraction,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .expressivePress(itemInteraction, scaleDown = 0.98f),
+                                    shape = groupedItemShape(idx, filteredList.size),
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    },
+                                    contentColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = entry.name,
+                                                style = MaterialTheme.typography.bodyLargeEmphasized,
+                                                color = if (isSelected) {
+                                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "${entry.source} · ${entry.measurementRig}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (isSelected) {
+                                                    MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f)
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        if (isSelected) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Icon(
+                                                imageVector = Icons.Rounded.Check,
+                                                contentDescription = stringResource(R.string.dolby_autoeq_selected),
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    FilledTonalButton(
+                        onClick = onDismiss,
+                        shape = CircleShape
+                    ) {
+                        Text(
+                            text = stringResource(android.R.string.cancel),
+                            style = MaterialTheme.typography.labelLargeEmphasized
+                        )
+                    }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onDismiss,
-                shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            ) {
-                Text(stringResource(android.R.string.cancel))
-            }
-        },
-        shape = MaterialTheme.shapes.extraLarge,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-    )
+        }
+    }
 }

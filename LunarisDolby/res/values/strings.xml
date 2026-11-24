@@ -213,4 +213,30 @@
     <string name="dolby_autoeq_search">Search</string>
     <string name="dolby_autoeq_active">Active profile</string>
     <string name="dolby_autoeq_selected">Selected profile</string>
+    <string name="dolby_autoeq_no_results">No matching headphone profiles found</string>
+    <string name="dolby_autoeq_results_count">%1$d profiles</string>
+
+    <!-- Expressive UI Additions -->
+    <string name="dolby_output_speaker">Speaker</string>
+    <string name="dolby_output_headphones">Headphones</string>
+    <string name="dolby_disabled_title">Dolby Atmos is off</string>
+    <string name="dolby_disabled_advanced_summary">Turn on Dolby Atmos to customize audio tuning, volume leveler, and spatial sound.</string>
+    <string name="dolby_enable_action">Turn on Dolby Atmos</string>
+    <string name="dolby_surround_virtualizer">Surround virtualizer</string>
+    <string name="dolby_back">Back</string>
+    <string name="dolby_refresh">Refresh</string>
+    <string name="dolby_close">Close</string>
+    <string name="dolby_eq_view_curve">Curve</string>
+    <string name="dolby_eq_view_sliders">Sliders</string>
+    <string name="dolby_eq_readonly_title">Frequency Response (Read-only)</string>
+    <string name="dolby_eq_drag_hint">Drag nodes to shape gain (±15 dB)</string>
+    <string name="dolby_eq_readonly_hint">Switch band mode or pick a compatible preset to edit</string>
+    <string name="dolby_eq_switch_to_mode">Switch to %1$s</string>
+    <string name="dolby_eq_bands_count">%1$d bands</string>
+    <string name="app_profiles_filter_all">All (%1$d)</string>
+    <string name="app_profiles_filter_assigned">Assigned (%1$d)</string>
+    <string name="app_profiles_subtitle">Tailor audio profiles automatically for each app</string>
+    <string name="import_export_subtitle">Back up, share, or restore custom EQ presets</string>
+    <string name="import_export_empty_title">No custom presets yet</string>
+    <string name="import_export_empty_desc">Save an EQ curve in the Equalizer or import a preset file to manage it here.</string>
 </resources>
